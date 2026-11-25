@@ -1,9 +1,10 @@
 # Product Requirements Document --- Safety Incident Reporting System
 
-**Status:** Revised draft\
-**Date:** 10 November 2026\
-**Basis:** Agreed PRD decisions and subsequent clarifications.
-Unresolved matters are listed in §16.
+**Status:** Revised draft v2 — all open questions resolved\
+**Date:** 25 November 2026\
+**Basis:** Agreed PRD decisions, subsequent clarifications, and the
+resolved open questions (§15) and confirmed assumptions (§16) recorded
+in this revision.
 
 ------------------------------------------------------------------------
 
@@ -28,6 +29,9 @@ Intent statements for traceability:
     restore deleted reports while the project remains open; permanently
     remove project records after the retention period.
 -   **I-6:** Keep the product within the agreed scope.
+-   **I-7:** Notify the Inspector of a rejection with its reason and
+allow the rejected report to be edited and resubmitted,
+with version history retained.
 
 ## 2. Scope
 
@@ -55,15 +59,25 @@ Intent statements for traceability:
     post-closure retention period, subject to role permissions.
 -   Login by company-issued email and password; interface determined by
     the logged-in user's role.
+-   Manager rejection of a pending report with a reason, stored by the
+system and notified in-system to the report's Inspector.
+-   Editing and resubmitting a rejected report by its Inspector; each
+submission is retained as a version in the report's version history.
+-   Reassignment of a project's Manager email by an Admin/HSE Engineer
+while the project remains open.
+-   Audit history recording actor, action, and timestamp for report
+closure, deletion, restoration, and Manager reassignment.
 
 ### 2.2 Out of Scope
 
--   Communication between users inside the system, including the
-    Manager's rejection email to the Inspector.
+-   General communication between users inside the system (chat,
+    comments, free-form messages). The only in-system message is the
+    structured rejection notification required by FR-42.
 -   Creating or managing user accounts, teams, Inspector-to-Manager
     assignments, or passwords (provided by the company).
 -   Draft or saved-incomplete reports.
--   Editing submitted reports.
+-   Editing reports in Pending Approval, Open, or Closed states. Only
+    Rejected reports may be edited (FR-43).
 -   Reopening Closed reports.
 -   Evidence or proof required to close a report.
 -   Escalation or time limits for pending approval.
@@ -100,9 +114,12 @@ Intent statements for traceability:
                                       status to Open.
 
   **Rejected**                        A pending report rejected by the
-                                      Manager. It is discarded and cannot
-                                      undergo any further report action
-                                      or transition.
+                                      Manager with a reason. The system
+                                      notifies the Inspector, who may
+                                      edit the report and resubmit it.
+                                      While rejected it cannot be
+                                      approved, opened, closed, or
+                                      deleted.
 
   **Open**                            An approved report that has not
                                       been closed.
@@ -155,6 +172,18 @@ Intent statements for traceability:
                                       handles account, password, and role
                                       problems. It is not the Admin role
                                       and has no role in the software.
+
+  **Notification**                    An in-system message created by
+                                      the system (not composed by
+                                      another user) that reports an
+                                      event to a user, such as the
+                                      rejection reason sent to an
+                                      Inspector.
+
+  **Report version**                  An immutable snapshot of a report
+                                      taken at each submission or
+                                      resubmission, retained in the
+                                      report's version history.
   -----------------------------------------------------------------------
 
 ## 4. Users and Authority
@@ -169,19 +198,28 @@ Intent statements for traceability:
   a report                                              
 
   View own pending  Yes               No                No
-  reports                                               
+  and rejected
+  reports
 
-  View pending      No                Yes               **No**
-  reports of                                            
-  assigned project                                      
+  View pending and  No                Yes, own project  **No**
+  rejected reports
+  of assigned
+  project
 
   Approve or reject No                Yes, own project  **No**
-  a pending report                    only              
+  a pending report                    only
+
+  Edit and resubmit Yes, own rejected No                No
+  a rejected report  report only
+
+  View own          Yes               No                No
+  rejection
+  notification
 
   View active Open  Own reports only  Own project       All projects
-  and Closed                                            
-  reports while                                         
-  project is open                                       
+  and Closed
+  reports while
+  project is open
 
   View own Closed   Yes               ---               ---
   reports after                                         
@@ -200,8 +238,8 @@ Intent statements for traceability:
   action while                                          
   project is open                                       
 
-  View corrective   See OQ-03         Yes, own project  Yes
-  action                                                
+  View corrective   No                Yes, own project  Yes
+  action
 
   Delete a pending  No                No                **No**
   report                                                
@@ -227,9 +265,18 @@ Intent statements for traceability:
   closure                                               
 
   Create a project, No                No                Yes
-  assign its                                            
-  Manager email, or                                     
-  close a project                                       
+  assign or
+  reassign its
+  Manager email,
+  or close a
+  project
+
+  View version      No                Yes, own project  Yes
+  history of a
+  report
+
+  View audit        No                No                Yes
+  history
   -----------------------------------------------------------------------
 
 **Permission notes:**
@@ -249,7 +296,15 @@ Intent statements for traceability:
     can change its reports. This includes deleting or restoring reports.
 6.  The project's currently designated Manager receives the project's
     Manager permissions, including access to its existing reports and
-    pending approvals.
+    pending approvals. When the Manager is reassigned, these
+    permissions transfer to the newly designated Manager and are
+    withdrawn from the previous one.
+7.  Only the Inspector who owns a rejected report can edit and
+    resubmit it. Rejection notifications are visible only to that
+    Inspector.
+8.  Inspectors cannot view corrective action on their reports; only
+    the project's Manager and Admin/HSE Engineers can.
+9.  Only Admin/HSE Engineers can view the audit history.
 
 ## 5. Functional Requirements
 
@@ -267,8 +322,17 @@ Intent statements for traceability:
                                       report with no violations.
 
   **FR-03**                           The report form shall include a
-                                      text field naming the project to
-                                      which the report relates.
+                                      field naming the project to which
+                                      the report relates, together with
+                                      the incident date and time,
+                                      location, and incident type
+                                      (accident or inspection finding).
+                                      Each violation entry shall include
+                                      a description, hazard category,
+                                      severity level, immediate action
+                                      taken, and zero or more
+                                      photograph attachments. (Resolved
+                                      OQ-01.)
 
   **FR-04**                           The system shall accept a report
                                       only if the named project exists,
@@ -282,9 +346,10 @@ Intent statements for traceability:
   **FR-05**                           The system shall not accept a
                                       report that combines violations
                                       belonging to different incidents.
-                                      The mechanism for identifying an
-                                      incident is subject to OQ-01 and
-                                      OQ-02.
+                                      An incident is identified by the
+                                      combination of incident date,
+                                      location, and incident type as
+                                      specified in OQ-02.
 
   **FR-06**                           The system shall not accept a
                                       violation that has the same
@@ -293,7 +358,10 @@ Intent statements for traceability:
                                       report that has not been deleted,
                                       and shall show a message. Deleted
                                       reports are excluded from this
-                                      duplicate check.
+                                      duplicate check, and the report
+                                      being edited or resubmitted is
+                                      excluded from a check against
+                                      itself.
 
   **FR-07**                           The system shall allow a completed,
                                       valid form to be submitted. A
@@ -327,10 +395,14 @@ Intent statements for traceability:
 
   **FR-11**                           The system shall allow the
                                       project's Manager to reject a
-                                      pending report. Rejection shall
-                                      discard the report; it shall not
-                                      become Open or Closed and shall not
-                                      remain available in report lists.
+                                      pending report with a reason. The
+                                      report shall become Rejected, the
+                                      reason shall be stored with it,
+                                      and the system shall create a
+                                      notification of the reason for
+                                      the report's Inspector. A rejected
+                                      report shall not become Open or
+                                      Closed while rejected.
 
   **FR-12**                           The system shall not show pending
                                       or rejected reports to Admin/HSE
@@ -339,9 +411,13 @@ Intent statements for traceability:
   **FR-13**                           The system shall prevent a rejected
                                       report from being approved, opened,
                                       closed, deleted, or otherwise
-                                      transitioned. A rejected report is
-                                      discarded and is not recoverable
-                                      through the Deleted tab.
+                                      transitioned while it remains
+                                      rejected. Its only permitted
+                                      transition is edit and resubmission
+                                      by its Inspector under FR-43,
+                                      which returns it to Pending
+                                      Approval. A rejected report shall
+                                      not appear in the Deleted tab.
   -----------------------------------------------------------------------
 
 ### 5.3 Report Visibility and Status
@@ -350,17 +426,18 @@ Intent statements for traceability:
   ID                                  Requirement
   ----------------------------------- -----------------------------------
   **FR-14**                           The system shall show an Inspector
-                                      only their own reports: pending
-                                      reports and approved reports with
+                                      only their own reports: pending,
+                                      rejected (with the rejection
+                                      reason), and approved reports with
                                       Open or Closed status, subject to
                                       the post-project-closure visibility
                                       rule.
 
   **FR-15**                           The system shall show a Manager the
-                                      pending, Open, and Closed reports
-                                      of the project they currently
-                                      handle, and no reports belonging to
-                                      other projects.
+                                      pending, rejected, Open, and Closed
+                                      reports of the project they
+                                      currently handle, and no reports
+                                      belonging to other projects.
 
   **FR-16**                           The system shall show an Admin/HSE
                                       Engineer all approved, non-deleted
@@ -389,13 +466,17 @@ Intent statements for traceability:
 
   **FR-20**                           The system shall allow an Admin/HSE
                                       Engineer to record corrective
-                                      action for a report, subject to the
-                                      unresolved edit/delete rules in
-                                      OQ-03.
+                                      action for a report. Corrective
+                                      action shall be editable and
+                                      deletable while the report remains
+                                      Open, and shall become immutable
+                                      once the report is Closed.
 
   **FR-21**                           The system shall make recorded
                                       corrective action viewable by the
                                       Manager of the report's project.
+                                      Inspectors shall not view
+                                      corrective action.
 
   **FR-22**                           The system shall not allow report
                                       changes, including closing,
@@ -470,7 +551,17 @@ Intent statements for traceability:
                                       Engineer to add a Manager's email
                                       to a project after it is created
                                       and shall refuse a second Manager
-                                      on the same project.
+                                      on the same project at the same
+                                      time. The Admin/HSE Engineer may
+                                      later change or reassign the
+                                      project's Manager email while the
+                                      project remains open; the newly
+                                      designated Manager shall gain the
+                                      project's Manager permissions,
+                                      including its pending approvals
+                                      and existing reports, and the
+                                      previous Manager shall lose them.
+                                      Project names shall be unique.
 
   **FR-32**                           When an Admin/HSE Engineer attempts
                                       to close a project that has one or
@@ -494,17 +585,18 @@ Intent statements for traceability:
                                       open and no reports shall be
                                       automatically closed.
 
-  **FR-35**                           The system shall not close a
-                                      project while it has Pending
-                                      Approval reports. It shall inform
-                                      the Admin/HSE Engineer that pending
-                                      reports must be resolved before
-                                      project closure. This requirement
-                                      preserves the previously agreed
-                                      rule; confirm in OQ-06 whether it
-                                      remains intended alongside the new
-                                      automatic closure rule for Open
-                                      reports.
+  **FR-35**                           When an Admin/HSE Engineer attempts
+                                      to close a project that has one or
+                                      more Pending Approval reports, the
+                                      system shall display an appropriate
+                                      warning message stating that the
+                                      pending reports will be discarded,
+                                      and prompt the Admin/HSE Engineer
+                                      to confirm whether to proceed. If
+                                      confirmed, the pending reports
+                                      shall be discarded as part of the
+                                      closure operation; if declined,
+                                      nothing changes. (Resolved OQ-06.)
 
   **FR-36**                           On project closure, the system
                                       shall prevent new reports from
@@ -531,11 +623,15 @@ Intent statements for traceability:
                                       users' reports or the Deleted tab.
 
   **FR-39**                           The system shall permanently remove
-                                      all reports belonging to a project,
-                                      including active Closed reports and
-                                      reports in the Deleted tab, when
-                                      the three-month retention period
-                                      after project closure expires.
+                                      all data belonging to a project
+                                      when the three-month retention
+                                      period after project closure
+                                      expires. This includes the project
+                                      record itself, all reports in all
+                                      states and versions, violations,
+                                      corrective actions, photograph
+                                      files, notifications, and audit
+                                      history. (Resolved OQ-08.)
   -----------------------------------------------------------------------
 
 ### 5.7 Access and Interface
@@ -555,6 +651,61 @@ Intent statements for traceability:
                                       attempts to access a report or
                                       perform an action outside the
                                       user's permissions.
+
+  **FR-42**                           The system shall allow a Manager
+                                      to enter a reason when rejecting a
+                                      pending report, shall store that
+                                      reason with the report, and shall
+                                      create an in-system notification
+                                      containing the reason for the
+                                      report's Inspector. No other
+                                      users shall receive this
+                                      notification.
+
+  **FR-43**                           The system shall allow an Inspector
+                                      to edit a rejected report they own
+                                      and resubmit it. Resubmission shall
+                                      revalidate the report under
+                                      FR-02 to FR-06 and return it to
+                                      Pending Approval. No other state
+                                      (Pending Approval, Open, Closed)
+                                      shall be editable.
+
+  **FR-44**                           The system shall retain an
+                                      immutable version snapshot of a
+                                      report at every submission and
+                                      resubmission. Version history
+                                      shall be viewable by the project's
+                                      Manager and by Admin/HSE
+                                      Engineers. Inspectors shall see
+                                      only the current version.
+
+  **FR-45**                           The system shall allow an Admin/HSE
+                                      Engineer to change the Manager
+                                      email of a project that is still
+                                      open, as specified in FR-31, and
+                                      shall record the change in the
+                                      audit history.
+
+  **FR-46**                           The system shall record an audit
+                                      history entry with the acting
+                                      user, the action type, and the
+                                      timestamp whenever a report is
+                                      closed, deleted, or restored, or
+                                      whenever a project's Manager is
+                                      reassigned. The audit history
+                                      shall be viewable only by
+                                      Admin/HSE Engineers. (Resolved
+                                      OQ-05 and OQ-12.)
+
+  **FR-47**                           Corrective action recorded on a
+                                      report shall be retained when the
+                                      report is deleted to the Deleted
+                                      tab and shall be restored with the
+                                      report if it is restored. It shall
+                                      be permanently removed with the
+                                      report under FR-39. (Resolved
+                                      OQ-11.)
   -----------------------------------------------------------------------
 
 ## 6. Non-Functional Requirements
@@ -575,14 +726,23 @@ Intent statements for traceability:
   **NFR-02 Performance**              At least 95% of applicable
                                       requests, including list views,
                                       shall complete within 2 seconds
-                                      under the volumes defined in OQ-08.
+                                      under a test load of up to 50
+                                      concurrent users, 1,000 reports,
+                                      50 projects, and 2,000 photographs.
+                                      (Resolved OQ-09.)
 
-  **NFR-03 Retention**                All reports belonging to a project,
+  **NFR-03 Retention**                All data belonging to a project,
                                       including active and deleted
-                                      reports, shall be retained for
+                                      reports, report versions,
+                                      corrective actions, photograph
+                                      files, notifications, and audit
+                                      history, shall be retained for
                                       three months after project closure
                                       and permanently removed when that
-                                      period expires.
+                                      period expires. The three-month
+                                      period starts at the exact
+                                      project-closure timestamp.
+                                      (Resolved OQ-08 and A-06.)
 
   **NFR-04 Maintainability**          The code shall be modular and
                                       documented so that a new feature
@@ -618,15 +778,20 @@ Intent statements for traceability:
                                       Admin/HSE Engineers cannot view or
                                       act on it.
 
-  **BR-05**                           Rejection discards the report. The
-                                      Manager communicates the reason to
-                                      the Inspector outside the system. A
-                                      rejected report cannot be approved,
-                                      opened, closed, deleted, or
-                                      restored.
+  **BR-05**                           Rejection returns the report to
+                                      its Inspector with a reason that
+                                      the system stores and notifies. The
+                                      Inspector may edit the rejected
+                                      report and resubmit it. While
+                                      rejected, the report cannot be
+                                      approved, opened, closed, deleted,
+                                      or restored.
 
-  **BR-06**                           A submitted report cannot be edited
-                                      by anyone.
+  **BR-06**                           Only a rejected report can be
+                                      edited, and only by its own
+                                      Inspector. Reports in Pending
+                                      Approval, Open, or Closed states
+                                      cannot be edited by anyone.
 
   **BR-07**                           An Admin/HSE Engineer may close an
                                       Open report while the project is
@@ -660,10 +825,13 @@ Intent statements for traceability:
                                       automatically changed to Closed as
                                       part of the closure operation.
 
-  **BR-12**                           A project cannot be closed while it
-                                      has Pending Approval reports,
-                                      unless this rule is changed through
-                                      the open question in OQ-06.
+  **BR-12**                           When project closure is confirmed
+                                      while Pending Approval reports
+                                      exist, those pending reports are
+                                      discarded as part of the closure
+                                      operation, after the warning
+                                      required by FR-35. (Resolved
+                                      OQ-06.)
 
   **BR-13**                           Once a project is closed, Managers
                                       and Admin/HSE Engineers have
@@ -673,20 +841,29 @@ Intent statements for traceability:
                                       No report may be deleted, restored,
                                       or otherwise changed.
 
-  **BR-14**                           All reports belonging to a closed
+  **BR-14**                           All data belonging to a closed
                                       project, including active and
-                                      deleted reports, are permanently
-                                      removed three months after project
-                                      closure.
+                                      deleted reports, report versions,
+                                      corrective actions, photograph
+                                      files, notifications, audit
+                                      history, and the project record
+                                      itself, is permanently removed
+                                      three months after project
+                                      closure. (Resolved OQ-08.)
 
   **BR-15**                           Each project has exactly one
-                                      Manager. No report can be filed on
-                                      a project until its Manager email
-                                      is added. Manager access follows
-                                      the project's currently designated
-                                      Manager, who holds the access of
-                                      the previous Manager, including
-                                      pending approvals.
+                                      Manager at any time. No report can
+                                      be filed on a project until its
+                                      Manager email is added. An
+                                      Admin/HSE Engineer may reassign
+                                      the Manager email while the
+                                      project is open. Manager access
+                                      follows the project's currently
+                                      designated Manager, who holds the
+                                      access of the previous Manager,
+                                      including pending approvals.
+                                      Project names are unique.
+                                      (Resolved OQ-10 and A-02.)
 
   **BR-16**                           Admin and HSE Engineer are one role
                                       with higher authority than Manager,
@@ -697,17 +874,36 @@ Intent statements for traceability:
                                       it is not a status.
 
   **BR-18**                           The following happen outside the
-                                      system: the Manager's rejection
-                                      reason/communication to the
-                                      Inspector, notice to the Admin/HSE
+                                      system: notice to the Admin/HSE
                                       Engineer that a matter is resolved,
                                       and account problems raised with
-                                      Account Administration.
+                                      Account Administration. The
+                                      rejection reason is communicated
+                                      in-system through the notification
+                                      required by FR-42.
 
   **BR-19**                           Roles, teams, accounts, and
                                       Inspector-to-Manager assignments
                                       are decided by the company before
                                       use.
+
+  **BR-20**                           Every submission and resubmission
+                                      of a report creates an immutable
+                                      version snapshot. Version history
+                                      is retained with the report and
+                                      purged only under FR-39.
+
+  **BR-21**                           The system automatically records
+                                      actor, action type, and timestamp
+                                      for report closure, deletion,
+                                      restoration, and Manager
+                                      reassignment. No text reason is
+                                      required from the actor.
+
+  **BR-22**                           Corrective action is retained when
+                                      a report is moved to the Deleted
+                                      tab and is restored with the
+                                      report if it is restored.
   -----------------------------------------------------------------------
 
 ## 8. Constraints
@@ -716,15 +912,23 @@ Intent statements for traceability:
   ID                                  Constraint
   ----------------------------------- -----------------------------------
   **CON-01**                          The product shall not include
-                                      in-system communication between
-                                      users.
+                                      general in-system communication
+                                      between users (chat, comments, or
+                                      free-form messages). The only
+                                      in-system message is the
+                                      structured rejection notification
+                                      required by FR-42.
 
   **CON-02**                          Admin and HSE Engineer shall be
                                       treated as one role.
 
-  **CON-03**                          No technology, framework, database,
-                                      hosting, or architecture is
-                                      prescribed.
+  **CON-03**                          The technology stack is fixed by
+                                      ADR-08: Java Spring Boot with
+                                      Thymeleaf server-rendered HTML/CSS/
+                                      JavaScript, MySQL, Spring Security,
+                                      and local filesystem photograph
+                                      storage, packaged as a single
+                                      deployable application.
 
   **CON-04**                          The software relies on
                                       company-provided accounts and
@@ -733,8 +937,11 @@ Intent statements for traceability:
 
   **CON-05**                          The software does not verify that
                                       an entered Manager email belongs to
-                                      a real Manager and defines no rules
-                                      for later changes to it.
+                                      a real Manager. The Manager email
+                                      may be changed or reassigned by an
+                                      Admin/HSE Engineer while the
+                                      project remains open, as specified
+                                      in FR-31 and FR-45.
 
   **CON-06**                          The software does not judge or
                                       evidence resolution; closing an
@@ -750,20 +957,26 @@ Intent statements for traceability:
 ### 9.1 Submit and Approve a Report
 
 1.  An Inspector logs in and sees the Inspector interface.
-2.  The Inspector fills in the project name and one or more violations
-    belonging to one incident.
+2.  The Inspector fills in the project name, incident date/time,
+    location, incident type, and one or more violations belonging to
+    one incident (each with description, hazard category, severity,
+    immediate action taken, and optional photographs).
 3.  The system validates the form, project, and duplicate-violation
     rules.
-4.  The Inspector submits the completed report.
+4.  The Inspector submits the completed report. A version snapshot is
+    saved.
 5.  The report enters Pending Approval and has no Open/Closed status.
 6.  The project's Manager sees the pending report. Admin/HSE Engineers
     do not.
 7.  The Manager either:
     -   **Approves:** the report becomes Open; or
-    -   **Rejects:** the report is discarded and cannot undergo any
-        further report action or transition. The Manager communicates
-        the reason outside the system.
-8.  Approved reports become visible according to the permission matrix.
+    -   **Rejects with a reason:** the report becomes Rejected, the
+        reason is stored, and the system notifies the Inspector. The
+        Inspector may edit the rejected report and resubmit it, which
+        saves a new version snapshot and returns it to Pending
+        Approval.
+8.  Approved reports become visible according to the permission
+    matrix.
 
 ### 9.2 Resolve and Close a Report
 
@@ -792,22 +1005,23 @@ Intent statements for traceability:
 1.  An Admin/HSE Engineer initiates project closure.
 2.  If Open reports exist, the system displays a warning/error message
     and asks the Admin/HSE Engineer whether to proceed.
-3.  If the Admin/HSE Engineer declines, the project remains open and no
+3.  If Pending Approval reports exist, the system additionally warns
+    that those pending reports will be discarded on confirmation.
+4.  If the Admin/HSE Engineer declines, the project remains open and no
     reports change.
-4.  If the Admin/HSE Engineer confirms, the system automatically closes
-    all Open reports in the project and closes the project.
-5.  If Pending Approval reports exist, project closure is blocked under
-    the current rule and the system informs the Admin/HSE Engineer. This
-    pending-report rule requires confirmation in OQ-06.
+5.  If the Admin/HSE Engineer confirms, the system automatically closes
+    all Open reports, discards all Pending Approval reports, and then
+    closes the project.
 6.  After closure, no Manager or Admin/HSE Engineer may change project
     reports. Admin/HSE Engineers and the Manager may view the project's
     reports read-only. Inspectors may view only their own Closed
     reports.
-7.  The project's active and deleted reports are retained for three
-    months after closure.
-8.  At the end of the three-month period, all reports for the project,
-    including Closed and previously deleted reports, are permanently
-    removed.
+7.  The project's data is retained for three months after closure,
+    starting from the exact project-closure timestamp.
+8.  At the end of the three-month period, all data for the project,
+    including the project record, reports in all states and versions,
+    corrective actions, photograph files, notifications, and audit
+    history, is permanently removed.
 
 ## 10. Edge Cases
 
@@ -866,8 +1080,14 @@ Intent statements for traceability:
                           reports are pending     and decide on the
                                                   pending reports.
 
-  **EC-15**               Manager rejects a       It is discarded; it
-                          report                  cannot be approved,
+  **EC-15**               Manager rejects a       Report becomes
+                          report                  Rejected with the
+                                                  stored reason; the
+                                                  system notifies the
+                                                  Inspector, who may
+                                                  edit and resubmit it.
+                                                  While rejected it
+                                                  cannot be approved,
                                                   opened, closed,
                                                   deleted, or restored.
 
@@ -912,9 +1132,16 @@ Intent statements for traceability:
                                                   on decline, nothing
                                                   changes.
 
-  **EC-25**               Project closure         Closure is blocked
-                          attempted while Pending under the current rule;
-                          Approval reports exist  see OQ-06.
+  **EC-25**               Project closure         System warns that
+                          attempted while Pending pending reports will
+                          Approval reports exist  be discarded and
+                                                  prompts for
+                                                  confirmation. On
+                                                  confirm, pending
+                                                  reports are
+                                                  discarded; on
+                                                  decline, nothing
+                                                  changes.
 
   **EC-26**               Manager attempts to     Action is denied.
                           change a Closed report  
@@ -934,10 +1161,15 @@ Intent statements for traceability:
                                                   read-only during
                                                   retention.
 
-  **EC-30**               Three-month retention   All reports for the
-                          period expires          project, including
-                                                  active Closed and
-                                                  deleted reports, are
+  **EC-30**               Three-month retention   All project data for
+                          period expires          the project,
+                                                  including the project
+                                                  record, all reports
+                                                  and versions,
+                                                  corrective actions,
+                                                  photo files,
+                                                  notifications, and
+                                                  audit history, is
                                                   permanently removed.
 
   **EC-31**               Two Admins close the    The report ends Closed
@@ -950,7 +1182,35 @@ Intent statements for traceability:
 
   **EC-33**               Forgotten password,     Handled by Account
                           lockout, or role change Administration outside
-                                                  the software.
+                          the software.
+
+  **EC-34**               Inspector edits and     New version snapshot
+                          resubmits a rejected    saved; report returns
+                          report                  to Pending Approval
+                                                  and is revalidated
+                                                  under FR-02 to FR-06.
+
+  **EC-35**               Admin reassigns the     New Manager gains
+                          Manager email while     pending approvals and
+                          reports are pending     existing reports;
+                                                  previous Manager
+                                                  loses project access.
+                                                  Audit entry recorded.
+
+  **EC-36**               Admin creates a         Not accepted; message
+                          project with a name     says the project name
+                          that already exists     must be unique.
+
+  **EC-37**               Another Inspector       Duplicate check
+                          submits a violation     blocks it unless the
+                          identical to one in a   matching report is in
+                          rejected report         the Deleted tab or is
+                                                  the report being
+                                                  resubmitted.
+
+  **EC-38**               Admin attempts to       Action is denied.
+                          delete or restore a
+                          rejected report
   -----------------------------------------------------------------------
 
 ## 11. Acceptance Criteria
@@ -1049,13 +1309,19 @@ Intent statements for traceability:
                                                   it becomes visible to
                                                   Admin/HSE Engineers.
 
-  **AC-12**               FR-11, FR-13            Given a pending report,
+  **AC-12**               FR-11, FR-13, FR-42     Given a pending report,
                                                   when its Manager
-                                                  rejects it, then it is
-                                                  discarded and cannot be
+                                                  rejects it with a
+                                                  reason, then it
+                                                  becomes Rejected, the
+                                                  reason is stored, the
+                                                  Inspector is notified
+                                                  in-system, and the
+                                                  report cannot be
                                                   approved, opened,
                                                   closed, deleted, or
-                                                  restored.
+                                                  restored while
+                                                  rejected.
 
   **AC-13**               FR-12, FR-16, FR-41     Given an Admin/HSE
                                                   Engineer attempts to
@@ -1066,14 +1332,16 @@ Intent statements for traceability:
   **AC-14**               FR-14                   Given an Inspector
                                                   views reports, then
                                                   they see only their own
-                                                  pending, Open, and
+                                                  pending, rejected (with
+                                                  reason), Open, and
                                                   Closed reports, subject
                                                   to post-closure rules.
 
   **AC-15**               FR-15                   Given a Manager views
                                                   reports, then they see
-                                                  pending, Open, and
-                                                  Closed reports for
+                                                  pending, rejected,
+                                                  Open, and Closed
+                                                  reports for
                                                   their own project only.
 
   **AC-16**               FR-16                   Given an Admin/HSE
@@ -1178,15 +1446,21 @@ Intent statements for traceability:
                                                   the project and reports
                                                   remain unchanged.
 
-  **AC-28**               FR-35                   Given a project with
+  **AC-28**               FR-32, FR-33, FR-35     Given a project with
                                                   Pending Approval
                                                   reports, when an
                                                   Admin/HSE Engineer
                                                   attempts closure, then
-                                                  closure is blocked and
-                                                  an explanatory message
-                                                  is shown, subject to
-                                                  confirmation of OQ-06.
+                                                  a warning states the
+                                                  pending reports will
+                                                  be discarded and a
+                                                  confirmation prompt
+                                                  appears. If confirmed,
+                                                  pending reports are
+                                                  discarded and the
+                                                  project closes; if
+                                                  declined, nothing
+                                                  changes.
 
   **AC-29**               FR-37, FR-38, FR-41     Given a closed project
                                                   within the retention
@@ -1200,14 +1474,18 @@ Intent statements for traceability:
 
   **AC-30**               FR-39, NFR-03           Given a project closed
                                                   three months ago, then
-                                                  all its reports,
-                                                  including active Closed
-                                                  and deleted reports,
-                                                  are permanently
-                                                  removed. Given a
-                                                  project closed less
-                                                  than three months ago,
-                                                  then its reports are
+                                                  all its data,
+                                                  including the project
+                                                  record, reports in all
+                                                  states and versions,
+                                                  corrective actions,
+                                                  photo files,
+                                                  notifications, and
+                                                  audit history, is
+                                                  permanently removed.
+                                                  Given a project closed
+                                                  less than three months
+                                                  ago, then its data is
                                                   retained.
 
   **AC-31**               FR-30, FR-31            Given an Admin/HSE
@@ -1234,9 +1512,12 @@ Intent statements for traceability:
                                                   only hidden or disabled
                                                   interface controls.
 
-  **AC-34**               NFR-02                  Given the volumes
-                                                  agreed in OQ-08, then
-                                                  at least 95% of
+  **AC-34**               NFR-02                  Given a test load of
+                                                  50 concurrent users,
+                                                  1,000 reports, 50
+                                                  projects, and 2,000
+                                                  photographs, then at
+                                                  least 95% of
                                                   applicable requests
                                                   complete within 2
                                                   seconds.
@@ -1251,8 +1532,67 @@ Intent statements for traceability:
 
   **AC-36**               CON-01                  Given the product, then
                                                   it contains no
-                                                  in-system messaging
-                                                  feature between users.
+                                                  general in-system
+                                                  messaging feature
+                                                  between users; the
+                                                  only in-system message
+                                                  is the structured
+                                                  rejection notification
+                                                  of FR-42.
+
+  **AC-37**               FR-43, FR-44            Given a rejected
+                                                  report, when its
+                                                  Inspector edits and
+                                                  resubmits it, then a
+                                                  new version snapshot
+                                                  is saved and the
+                                                  report returns to
+                                                  Pending Approval.
+
+  **AC-38**               FR-31, FR-45, FR-46     Given an Admin/HSE
+                                                  Engineer reassigns a
+                                                  project's Manager
+                                                  email while reports
+                                                  are pending, then the
+                                                  new Manager can view
+                                                  and decide on the
+                                                  pending reports, the
+                                                  previous Manager loses
+                                                  project access, and an
+                                                  audit entry is
+                                                  recorded.
+
+  **AC-39**               FR-31                   Given an Admin/HSE
+                                                  Engineer creates a
+                                                  project with a name
+                                                  that already exists,
+                                                  then it is not
+                                                  accepted and a message
+                                                  says the name must be
+                                                  unique.
+
+  **AC-40**               FR-46, FR-47            Given an Admin/HSE
+                                                  Engineer closes,
+                                                  deletes, or restores a
+                                                  report, then the audit
+                                                  history records the
+                                                  actor, action type,
+                                                  and timestamp. Given a
+                                                  deleted report with
+                                                  corrective action is
+                                                  restored, then the
+                                                  corrective action is
+                                                  restored with it.
+
+  **AC-41**               FR-42, FR-43            Given a Manager
+                                                  rejects a report with
+                                                  a reason, then only
+                                                  the owning Inspector
+                                                  receives the
+                                                  notification and only
+                                                  that Inspector can
+                                                  edit and resubmit the
+                                                  report.
   -----------------------------------------------------------------------
 
 ## 12. Traceability to Product Intent
@@ -1277,6 +1617,9 @@ Intent statements for traceability:
 
   I-6 Stay in scope                   BR-18, BR-19, CON-01 to CON-06,
                                       NFR-04
+
+  I-7 Notify rejection and allow      FR-11, FR-13, FR-42 to FR-44,
+  resubmission with version history   BR-05, BR-06, BR-20
   -----------------------------------------------------------------------
 
 ## 13. Accepted Risks
@@ -1290,13 +1633,19 @@ Intent statements for traceability:
                                       Admin/HSE Engineers cannot see or
                                       act on it.
 
-  **R-02**                            A pending report can block project
-                                      closure, while Admin/HSE Engineers
-                                      cannot view or decide on it.
+  **R-02**                            On confirmed project closure,
+                                      Pending Approval reports are
+                                      discarded without any Admin/HSE
+                                      Engineer having viewed them,
+                                      because Admin/HSE Engineers cannot
+                                      see pending reports.
 
-  **R-03**                            The system holds no record that a
-                                      report was rejected, by whom, or
-                                      why.
+  **R-03**                            RESOLVED. The system now records
+                                      the rejection reason with the
+                                      report, notifies the Inspector
+                                      in-system, and records actor,
+                                      action, and timestamp in the audit
+                                      history (FR-42, FR-46).
 
   **R-04**                            Duplicate detection is based on
                                       exact description text, so a
@@ -1313,9 +1662,11 @@ Intent statements for traceability:
 
   **R-07**                            Confirmed project closure
                                       automatically closes all Open
-                                      reports, even if an individual
-                                      report has not separately been
-                                      confirmed as resolved.
+                                      reports and discards all Pending
+                                      Approval reports, even if an
+                                      individual report has not
+                                      separately been confirmed as
+                                      resolved.
   -----------------------------------------------------------------------
 
 ## 14. Clashes Removed or Reconciled
@@ -1323,9 +1674,12 @@ Intent statements for traceability:
   -----------------------------------------------------------------------
   Previous clash or ambiguity         Resolution in this revision
   ----------------------------------- -----------------------------------
-  Rejection was described as          Rejected reports are discarded and
-  discarded, but its later lifecycle  cannot be approved, opened, closed,
-  was not fully explicit.             deleted, or restored.
+  Rejection was described as          Rejected reports now carry a
+  discarded, but its later lifecycle  stored reason, notify the
+  was not fully explicit.             Inspector in-system, and may be
+                                      edited and resubmitted by their
+                                      Inspector, with version history
+                                      retained (FR-42 to FR-44).
 
   Admin visibility was broad in       Admin/HSE Engineers cannot view or
   places and could be read as         act on Pending Approval or Rejected
@@ -1350,8 +1704,9 @@ Intent statements for traceability:
   Project closure previously required Open reports trigger a warning and
   no Open or pending reports,         confirmation; confirming closes
   conflicting with the new            them automatically. Pending reports
-  automatic-close confirmation.       remain a closure blocker pending
-                                      confirmation in OQ-06.
+  automatic-close confirmation.       trigger their own warning;
+                                      confirming discards them (FR-35,
+                                      resolved OQ-06).
 
   Project closure did not clearly     Managers and Admin/HSE Engineers
   define post-closure change          have read-only access during
@@ -1362,145 +1717,116 @@ Intent statements for traceability:
   Inspector access after project      Inspectors can view only their own
   closure was unclear.                Closed reports during retention.
 
-  Retention wording could be read as  All project reports, including
-  applying only to deleted reports.   active Closed and deleted reports,
-                                      are permanently removed three
-                                      months after project closure.
+  Retention wording could be read as  All project data, including the
+  applying only to deleted reports.   project record, all reports and
+                                      versions, corrective actions,
+                                      photo files, notifications, and
+                                      audit history, is permanently
+                                      removed three months after
+                                      project closure (resolved OQ-08).
 
   Closed reports were described as    Automatic closure is an explicit
   final, while project closure        project-closure operation; Closed
   automatically closes Open reports.  remains final after that operation.
   -----------------------------------------------------------------------
 
-## 15. Remaining Gaps
+## 15. Open Questions — Resolved
+
+All twelve open questions were resolved on 25 November 2026. The
+answers are incorporated in the requirements above; this section is
+retained for traceability.
 
   -----------------------------------------------------------------------
-  ID                      Gap / question          Why it matters
-  ----------------------- ----------------------- -----------------------
-  **OQ-01**               What exact fields must  Needed to finalize
-                          the report form         FR-03, validation, and
-                          contain?                acceptance tests.
+  ID      Resolution
+  -------- --------------------------------------------------------------
+  OQ-01    Standard HSE form. Report fields: project, incident date/time,
+           location, incident type (accident or inspection finding).
+           Violation fields: description, hazard category, severity
+           level, immediate action taken, photograph(s). See FR-03.
 
-  **OQ-02**               What identifies the     Needed to implement and
-                          "same incident" for an  test incident grouping
-                          accident versus an      and duplicate
-                          inspection finding?     detection.
+  OQ-02    An incident is identified by the combination of incident
+           date, location, and incident type. See FR-05.
 
-  **OQ-03**               Can corrective action   FR-20 and FR-21 define
-                          be edited or deleted    recording and Manager
-                          while the report is     visibility but not
-                          Open, and can           these permissions.
-                          Inspectors see it?      
+  OQ-03    Corrective action is editable and deletable while the report
+           is Open, and becomes immutable once Closed. Inspectors cannot
+           view corrective action. See FR-20, FR-21.
 
-  **OQ-04**               Can an Admin/HSE        Current rule says no
-                          Engineer delete a       report changes after
-                          Closed report after the project closure;
-                          project has closed?     confirm that this
-                                                  includes deletion in
-                                                  all circumstances.
+  OQ-04    Confirmed: no report changes of any kind after project
+           closure, including deletion. See FR-22, FR-29.
 
-  **OQ-05**               Should the system       Needed to determine
-                          record who closed or    audit-history
-                          deleted a report, when, requirements.
-                          and why?                
+  OQ-05    Yes. The system records actor, action type, and timestamp for
+           closure, deletion, restoration, and Manager reassignment. No
+           text reason is required. See FR-46, BR-21.
 
-  **OQ-06**               Can a project be closed This revision preserves
-                          while Pending Approval  the earlier rule that
-                          reports exist?          pending reports block
-                                                  closure. The new
-                                                  confirmation flow
-                                                  explicitly addresses
-                                                  Open reports only.
-                                                  Confirm whether pending
-                                                  reports should continue
-                                                  to block closure, or
-                                                  whether another
-                                                  handling rule is
-                                                  intended.
+  OQ-06    Pending Approval reports no longer block closure. On
+           confirmed closure they are discarded after an explicit
+           warning. See FR-35, BR-12.
 
-  **OQ-07**               Does project closure    Confirmation currently
-                          allow the Admin/HSE     causes all Open reports
-                          Engineer to proceed     to be automatically
-                          when only Open reports  Closed. This is a
-                          exist, even if some are consequential business
-                          not individually        decision.
-                          resolved?               
+  OQ-07    Confirmed: Admin may proceed with closure when Open reports
+           exist; confirmation auto-closes them. See FR-32, FR-33.
 
-  **OQ-08**               What happens to project FR-39/NFR-03 explicitly
-                          records other than      cover reports; the
-                          reports (for example,   complete project-data
-                          project details and     deletion scope should
-                          corrective-action       be confirmed.
-                          records) at the end of  
-                          the three-month         
-                          retention period?       
+  OQ-08    At retention expiry ALL project data is permanently purged:
+           project record, reports in all states and versions,
+           violations, corrective actions, photo files, notifications,
+           and audit history. See FR-39, NFR-03, BR-14.
 
-  **OQ-09**               What numbers of users,  Needed to make NFR-02
-                          reports, and            measurable.
-                          attachments define the  
-                          test load for the       
-                          2-second response-time  
-                          target?                 
+  OQ-09    Test load: 50 concurrent users, 1,000 reports, 50 projects,
+           2,000 photographs; 95% of requests under 2 seconds. See
+           NFR-02.
 
-  **OQ-10**               Can one Manager handle  Needed to finalize
-                          several projects, and   project assignment and
-                          can a project's Manager Manager replacement
-                          email be changed after  behavior.
-                          it is entered?          
+  OQ-10    One Manager may handle several projects (already established
+           by ADR/architecture). The Manager email may be reassigned by
+           an Admin while the project is open; the new Manager gains
+           pending approvals and existing reports. Project names must
+           be unique. See FR-31, FR-45, BR-15.
 
-  **OQ-11**               What happens to a       Needed to define
-                          deleted report's        whether corrective
-                          corrective-action data  action is retained and
-                          on deletion and         restored with the
-                          restoration?            report.
+  OQ-11    Corrective action is retained when a report is deleted and
+           restored with it if restored; purged with the report under
+           FR-39. See FR-47, BR-22.
 
-  **OQ-12**               When a deleted report   Needed if auditability
-                          is restored, should its of delete/restore
-                          original deletion       actions is required.
-                          timestamp/history       
-                          remain available to     
-                          Admin/HSE Engineers?    
+  OQ-12    Deletion, restoration, and other audited actions leave an
+           audit-history entry (actor, action, timestamp) visible to
+           Admin/HSE Engineers. See FR-46.
   -----------------------------------------------------------------------
 
-## 16. Assumptions to Confirm
+## 16. Assumptions — Confirmed
+
+All assumptions were confirmed on 25 November 2026, except A-03 which
+was revised as noted.
 
   -----------------------------------------------------------------------
-  ID                                  Assumption
-  ----------------------------------- -----------------------------------
-  **A-01**                            An Admin/HSE Engineer who records
-                                      corrective action can also view it.
+  ID      Status
+  -------- --------------------------------------------------------------
+  A-01     CONFIRMED. An Admin/HSE Engineer who records corrective
+           action can also view it.
 
-  **A-02**                            Project names are unique, so name
-                                      matching in FR-04 is unambiguous.
+  A-02     CONFIRMED. Project names are unique, so name matching in
+           FR-04 is unambiguous. Refusal of duplicate names is in
+           FR-31.
 
-  **A-03**                            The system sends no notifications;
-                                      Managers check their pending list.
-                                      The rejection reason is
-                                      communicated by the Manager outside
-                                      the system.
+  A-03     REVISED. The system DOES send an in-system notification
+           carrying the rejection reason to the Inspector. The
+           Inspector may edit the rejected report and resubmit it, and
+           the version history of the report is saved. (Supersedes the
+           earlier "no notifications" assumption; see FR-42, FR-43,
+           FR-44.)
 
-  **A-04**                            The company's designation data
-                                      tells the system which Manager an
-                                      Inspector belongs to, so FR-04 can
-                                      compare it with the project's
-                                      Manager.
+  A-04     CONFIRMED. The company's designation data tells the system
+           which Manager an Inspector belongs to, so FR-04 can compare
+           it with the project's Manager.
 
-  **A-05**                            A restored report returns to the
-                                      active Closed list because only
-                                      Closed reports can be deleted.
+  A-05     CONFIRMED. A restored report returns to the active Closed
+           list because only Closed reports can be deleted.
 
-  **A-06**                            The three-month retention period
-                                      begins at the date/time the project
-                                      is closed.
+  A-06     CONFIRMED. The three-month retention period begins at the
+           exact date/time the project is closed.
 
-  **A-07**                            The Deleted tab remains accessible
-                                      to Admin/HSE Engineers in read-only
-                                      mode during the post-closure
-                                      retention period.
+  A-07     CONFIRMED. The Deleted tab remains accessible to Admin/HSE
+           Engineers in read-only mode during the post-closure
+           retention period.
 
-  **A-08**                            Project closure does not delete the
-                                      project record immediately; report
-                                      records remain available for the
-                                      retention period under the role
-                                      permissions in §4.
+  A-08     CONFIRMED. Project closure does not delete the project
+           record immediately; project data remains available for the
+           retention period under the role permissions in §4, then is
+           purged entirely under FR-39.
   -----------------------------------------------------------------------

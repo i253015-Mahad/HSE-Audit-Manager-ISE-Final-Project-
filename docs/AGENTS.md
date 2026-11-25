@@ -45,7 +45,7 @@ Use the project documents for different purposes:
 
 - Do not silently resolve a conflict between `PRD.md`, `architecture.md`, an accepted ADR, or the existing implementation.
 - Accepted ADRs govern the architectural decisions they explicitly cover. Check their status and whether they have been superseded.
-- `architecture.md` is marked as a draft working architecture baseline and identifies items requiring ADR verification. Do not present an unverified option label, technology, or decision as confirmed.
+- `architecture.md` is the documented working architecture baseline and now cites the accepted ADRs (ADR-01 to ADR-06, ADR-08) directly. Where it and an accepted ADR appear inconsistent, treat the ADR as governing and report the conflict.
 - If the architecture document and an accepted ADR appear inconsistent, identify the exact conflict and ask the human developer which document should be updated. Do not independently rewrite either decision.
 - If a requirement is unclear, ask one focused clarification question before implementing behavior that depends on it.
 
@@ -170,11 +170,14 @@ Use the terminology and rules in `PRD.md`, `architecture.md`, and the glossary.
 - A Safety Team Inspector creates and submits a standardized safety report.
 - Submission and report progress are separate concepts. Do not treat `Submitted` as an `Open`/`Closed` progress status.
 - Report progress uses only the agreed `Open` and `Closed` states unless an approved requirement changes this.
-- Multiple safety violations are supported only when the report concerns an incident.
+- Multiple safety violations are supported only when the report concerns an incident; an incident is identified by date + location + incident type (PRD FR-05).
+- Only a Rejected report may be edited, and only by its owning Inspector, who may then resubmit it; each submission/resubmission saves an immutable version snapshot (PRD FR-43, FR-44).
+- Rejection stores a reason with the report and creates an in-system notification for the owning Inspector (PRD FR-42); there is no other user-to-user messaging.
 - A Manager's access is limited to projects assigned to that Manager.
 - HSE Engineer/Admin oversight is cross-project.
 - A Manager may view, but must not change, an individual `Closed` report after its project has been closed.
 - An Admin may restore a deleted report only while the relevant project is open and the actor is authorized.
+- Corrective action is editable/deletable only while the report is Open, is visible to Manager and Admin only (not Inspectors), and is retained through delete/restore (PRD FR-20, FR-21, FR-47).
 - Report evidence is limited to photographs.
 
 Enforce these rules in the appropriate application/business logic. Do not rely on frontend hiding, disabled buttons, or client-side validation as the only enforcement.
@@ -215,15 +218,14 @@ Operational rules:
 
 The following constraints are documented:
 - Web-based application.
-- Modular, layered application direction.
-- One cohesive application / single deployable unit as the working direction, subject to accepted ADR verification.
+- Modular, layered application direction (modular monolith, ADR-01).
+- One cohesive application / single deployable unit (ADR-01).
 - Small-to-medium expected website and small student development team.
-- Photograph-only report evidence.
-- No confirmed specific third-party integration or technology stack is prescribed by `architecture.md`.
+- Photograph-only report evidence (ADR-06).
+- Technology stack approved 25 November 2026 in ADR-08: Java, Spring Boot, Thymeleaf server-rendered HTML/CSS/JavaScript, Spring Security, MySQL (Spring Data JPA), local filesystem photograph storage, single executable JAR.
 
 Therefore:
-- Use only languages, frameworks, libraries, databases, hosting platforms, authentication providers, and external services already present in the repository or explicitly approved in an accepted ADR.
-- Do not add or replace a framework, database, authentication provider, hosting platform, storage service, external API, or build tool without raising the proposal for human approval and the appropriate ADR update.
+- Use only the stack approved in ADR-08. Do not add or replace a framework, database, authentication provider, hosting platform, storage service, external API, or build tool without raising the proposal for human approval and an ADR update.
 - Do not invent an external integration because it seems useful.
 - Do not introduce independent services or deployment units without explicit architectural approval.
 
@@ -343,7 +345,36 @@ Summarize:
 - Tests/checks run and their results.
 - Any assumptions, unresolved questions, or architectural concerns.
 
-## 15. Final Rule
+## 15. Token Efficiency, Git Controls, and Planning Workflow
+
+### 15.1 Git & Version Control Operations
+
+1. **Explicit Consent Required:** Never execute `git commit`, `git push`, or alter repository/remote history without asking for and receiving explicit, action-specific approval from the human developer.
+2. **Pre-commit Summary:** Present a clear breakdown of uncommitted changes and their rationale before asking for permission to commit.
+
+### 15.2 Context Window & Token Efficiency
+
+1. **Targeted Reading:** Read only files and line ranges directly relevant to the active task. Avoid whole-project reads or unnecessary multi-file dumps.
+2. **Search First:** Use targeted text search (`grep`) and pattern matching (`glob`) to locate exact code or documentation sections before reading.
+3. **Targeted Edits:** Use surgical string replacement (`edit`) rather than overwriting full files (`write`).
+4. **Context Compression:** Periodically compress context after completing major task phases to keep the context window focused and high-signal.
+5. **Concise Communication:** Keep conversational output lean, referencing file paths and line numbers instead of reproducing full file contents unnecessarily.
+
+### 15.3 Plan Artifact & History (`docs/plans/`)
+
+1. **Repository-Relative Location:** Store all plan documents within a dedicated `docs/plans/` directory in the repository so all team members have equal access across environments (do not use personal/user-specific paths).
+2. **Mandatory `plan.md` Structure:** Every `plan.md` must include the following required sections:
+   - Product Objective
+   - Implementation Assumptions & Open Issues
+   - Vertical Slices
+   - Slice Priorities and Order
+   - Dependencies
+   - Acceptance Criteria (or explicit references to PRD criteria)
+   - Current Slice Status
+3. **Mandatory History & Versioning:** `plan.md` is a living artefact. Update it whenever sequencing, dependencies, scope, decisions, or implementation understanding changes. Preserve every meaningful version using zero-padded versioning in `docs/plans/` (e.g., `plan-v01.md`, `plan-v02.md`, etc., alongside the current active `plan.md`).
+4. **Continuous Maintenance of README and Plan:** Actively maintain and refine `README.md` and `plan.md` as requirements and implementation progress.
+
+## 16. Final Rule
 
 Implement the agreed product within the documented architecture. Keep business rules with their owning capabilities, communicate through defined interfaces, preserve the layered structure, and respect accepted ADRs.
 

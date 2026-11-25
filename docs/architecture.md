@@ -1,10 +1,10 @@
 # Architecture Document
 
 **Project:** HSE Safety Reporting System  
-**Status:** Draft — consolidated from agreed project discussions  
-**Last updated:** 12 November 2026
+**Status:** Working baseline — updated with resolved decisions (25 November 2026)  
+**Last updated:** 25 November 2026
 
-> **Decision-integrity note:** This document records the project decisions that can be reconstructed from the shared project discussions. Where the exact wording or option selected in an earlier ADR is not available in the current conversation context, the document states the architectural direction conservatively and marks the point for verification against the accepted ADR. No technology stack, deployment platform, or unconfirmed integration is prescribed here.
+> **Decision-integrity note:** This document now reflects the accepted ADRs (ADR-01 to ADR-06, ADR-08), the resolved PRD open questions, and the confirmed technology stack. Where earlier drafts carried "verify against ADR" placeholders, those placeholders have been replaced with the actual accepted ADR references.
 
 ## 1. System Overview
 
@@ -57,15 +57,13 @@ The following ASRs are derived from the agreed product rules and architecture di
 
 ### 4.1 Architectural direction
 
-Use a **modular, layered web application** as the working architectural direction:
+Use a **modular monolithic architecture** (ADR-01, Accepted):
 
-- **Modular:** Organize the application around cohesive business capabilities and keep their responsibilities and interfaces explicit.
+- **Modular:** Organize the application around cohesive business capabilities and keep their responsibilities and interfaces explicit (ADR-02).
 - **Layered:** Separate user-interface concerns, application/business rules, and persistence/infrastructure concerns.
-- **Single deployable application:** Keep the modules within one application and one deployment unit unless the accepted ADRs specify otherwise.
+- **Single deployable application:** Keep the modules within one application and one deployment unit (ADR-01).
 
 This direction fits the project's scale and team size: it provides separation of concerns and clear business boundaries without requiring the operational overhead of multiple independently deployed services.
-
-> **ADR verification required:** The exact option label and wording selected in the team's architecture-style ADR should be copied here when the accepted ADR is available. The project discussion records that options were explicitly locked, but the full option descriptions are not present in the current context. This section therefore records the conservative architectural direction rather than claiming an exact ADR title or option label.
 
 ### 4.2 Rationale
 
@@ -74,6 +72,20 @@ This direction fits the project's scale and team size: it provides separation of
 - Layer boundaries help prevent business rules from being duplicated in screens or persistence code.
 - Business modules provide a place for domain-specific rules while shared technical concerns can be handled consistently.
 - The design can evolve if future scale or deployment needs justify a different structure, without introducing that complexity prematurely.
+
+### 4.3 Technology stack (approved 25 November 2026, ADR-08)
+
+| Concern | Choice | Notes |
+|---|---|---|
+| Language | Java | Team-approved language |
+| Web framework | Spring Boot | Single deployable JAR; fits ADR-01 |
+| Templating | Thymeleaf server-rendered HTML/CSS/JavaScript | No separate SPA; Option A chosen for security (server-side permission checks, XSS/CSRF protection) |
+| Security | Spring Security | Email + password login (NFR-01); role + project-scope authorization (ADR-03) |
+| Database | MySQL (relational) | Per ADR-04; JPA/Hibernate for persistence |
+| Photograph storage | Local filesystem directory | Files outside DB, DB stores references (ADR-06) |
+| Build/packaging | Maven or Gradle single executable JAR | One deployment unit |
+
+Architecture-style ADR: ADR-01 (Accepted) — modular monolithic architecture. Internal organization per ADR-02: lightweight hybrid, organized by business module with request-handling/business-logic/data separation inside modules where useful; repository layer only where justified.
 
 ## 5. Major Components and Modules
 
@@ -129,12 +141,15 @@ The business modules should be organized around the system's domain responsibili
 #### C. Safety Report Management
 
 - Creates and maintains standardized safety reports.
-- Supports submission by a Safety Team inspector.
-- Applies report-specific validation, including the rule that multiple safety violations are supported only when the report concerns an incident.
+- Supports submission by a Safety Team inspector, including resubmission of edited rejected reports.
+- Applies report-specific validation, including the rule that multiple safety violations are supported only when the report concerns an incident, and duplicate detection against non-deleted reports excluding the report itself.
 - Maintains report progress as Open or Closed, according to the agreed corrective-action process.
+- Manages report version history: an immutable snapshot at each submission and resubmission (PRD FR-44).
+- Creates the structured rejection notification (reason + report reference) for the owning Inspector when a Manager rejects a report (PRD FR-42); notifications are system-generated messages, not user-to-user chat.
 - Applies report-level lifecycle rules in coordination with project state and authorization.
+- Owns corrective-action data: editable/deletable while Open, immutable once Closed, retained through delete/restore (PRD FR-20, FR-47).
 
-**Boundary:** Owns report content and report progress. It should consult Project Management for project state and User/Access Management for authorization rather than duplicating those responsibilities.
+**Boundary:** Owns report content, report versions, notifications about reports, and report progress. It should consult Project Management for project state and User/Access Management for authorization rather than duplicating those responsibilities.
 
 #### D. Report Evidence/Photograph Handling
 
@@ -208,16 +223,12 @@ Interactions should occur through application-level use cases and explicit modul
 
 ## 7. Relevant External Systems and Services
 
-No specific third-party service or external integration has been confirmed in the available project decisions.
+No third-party service or external integration beyond the approved stack is required. The approved technology stack (ADR-08) provides:
 
-The architecture may require technical adapters for:
+- **MySQL relational database (ADR-04):** Stores users, roles, projects, reports, report versions, violations, corrective actions, notifications, and audit history.
+- **Local filesystem photograph storage (ADR-06):** Stores photograph files outside the database; the database stores references and metadata. Photograph access follows the same role- and project-scoped authorization as the associated reports.
 
-- **Database/persistent storage:** Stores users, roles, projects, reports, report state, and relevant metadata.
-- **Photograph storage:** Stores photograph evidence and maintains its association with reports.
-
-The selected database, hosting provider, photograph-storage service, authentication provider, and any email/notification service remain implementation decisions unless specified in an accepted ADR or the PRD.
-
-Do not assume integrations with external HSE platforms, analytics services, payment systems, or notification providers.
+Authentication is handled by Spring Security against company-issued email and password. Account creation, password reset, and lockout remain outside the software (Account Administration). No email/notification provider, external HSE platform, analytics service, or payment system is integrated; the only in-system messaging is the structured rejection notification owned by Safety Report Management.
 
 ## 8. Important Data Responsibilities
 
@@ -226,13 +237,16 @@ Data should have one clear logical owner. Other modules may use that data throug
 | Data area | Logical owner | Key responsibilities |
 |---|---|---|
 | Users and roles | User and Access Management | User identity within the application, role membership, and authorization context. |
-| Project records | Project Management | Project details, project state, and exactly one assigned Manager per project. |
-| Manager assignments | Project Management | Ensures one Manager per project and allows one Manager to manage multiple projects. |
+| Project records | Project Management | Project details (unique name), project state, and exactly one assigned Manager per project. |
+| Manager assignments | Project Management | Ensures one Manager per project at a time; supports Admin reassignment while the project is open. |
 | Safety report content | Safety Report Management | Standardized report fields, report submission information, and report progress. |
+| Report versions | Safety Report Management | Immutable snapshot per submission/resubmission; viewable by Manager (own project) and Admin. |
 | Safety violations | Safety Report Management | Stores violation information and enforces the incident-only multiple-violation rule. |
-| Corrective-action/progress information | Safety Report Management | Supports the agreed Open/Closed report progress lifecycle. |
+| Corrective-action/progress information | Safety Report Management | Supports the agreed Open/Closed report progress lifecycle; editable while Open, immutable when Closed. |
+| Rejection notifications | Safety Report Management | System-generated notification of rejection reason to the owning Inspector only. |
 | Photograph evidence | Report Evidence/Photograph Handling | Photograph data/storage references and association with reports. |
 | Deleted/restorable report state | Safety Report Management | Retains the information needed for authorized restoration while the project remains open. |
+| Audit history | Administration and Oversight (via owning modules) | Actor, action type, timestamp for closure, deletion, restoration, and Manager reassignment (ADR-05); Admin-only view. |
 
 ### 8.1 Important integrity rules
 
@@ -315,15 +329,17 @@ flowchart TB
 
 ## 11. Links and References to Relevant ADRs
 
-The architecture must be read together with the accepted ADRs. The project discussions confirm that architectural options were discussed and locked, but the exact ADR filenames, titles, and option descriptions are not available in the current context. To avoid fabricating references, use the team's actual accepted ADR filenames in the table below.
+The architecture must be read together with the accepted ADRs in `docs/HSE-Architecture-ADRs/`. All seven accepted ADRs are listed below (ADR-07 was intentionally skipped).
 
 | ADR reference | Decision area | Relationship to this document |
 |---|---|---|
-| Accepted ADR — architectural style (filename to verify) | Overall architectural style | Confirms or corrects the modular/layered, single-deployable direction in Section 4. |
-| Accepted ADR — module/component organization (filename to verify) | Major business and technical modules | Confirms the module boundaries in Section 5. |
-| Accepted ADR — data ownership/storage (filename to verify) | Data ownership and persistence | Confirms Section 8 and the persistence boundaries. |
-| Accepted ADR — external services/integrations (filename to verify) | External system boundaries | Confirms Section 7. |
-| Accepted ADR — report evidence/media (filename to verify) | Supported report attachment type | Confirms the photograph-only constraint in Sections 5, 8, and 9. |
+| `ADR-01-overall-architectural-style.md` (Accepted) | Overall architectural style | Establishes the modular monolithic, single-deployable direction in Section 4. |
+| `ADR-02-internal-module-organization.md` (Accepted) | Internal module organization | Establishes the lightweight hybrid, business-module-first organization in Section 5. |
+| `ADR-03-authentication-and-authorization.md` (Accepted) | Authentication and authorization | Establishes role-based plus project-based authorization in Sections 4, 5, and 6. |
+| `ADR-04-database-architecture.md` (Accepted) | Database architecture | Establishes the relational (SQL/MySQL) database in Sections 4.3 and 7. |
+| `ADR-05-report-lifecycle-and-audit-history.md` (Accepted) | Report lifecycle and audit history | Establishes current-state plus separate audit history in Sections 5.3 and 8. |
+| `ADR-06-photograph-storage.md` (Accepted) | Photograph storage | Establishes separate file storage with database references in Sections 4.3, 5.3-D, and 7. |
+| `ADR-08-technology-stack.md` (Accepted) | Technology stack | Establishes Spring Boot, Thymeleaf, MySQL, Spring Security, and local photo storage in Section 4.3. |
 
 ### Related project documents
 
@@ -334,12 +350,14 @@ The architecture must be read together with the accepted ADRs. The project discu
 
 ---
 
-## Items to Verify Before Treating This Document as Final
+## Verification Status (25 November 2026)
 
-1. Replace the ADR placeholders with the exact accepted ADR filenames, titles, statuses, and selected options.
-2. Confirm the precise architectural-style label and rationale against the accepted architecture ADR.
-3. Confirm the exact business-module and technical-module decomposition against the relevant ADRs.
-4. Confirm any database, authentication, hosting, or photograph-storage choices only if they were explicitly decided in the ADRs or PRD.
-5. Cross-check all requirement wording and identifiers against the final `PRD.md`, especially the agreed NFRs and ASR traceability.
+The earlier draft's verification items have been completed:
 
-Until these checks are completed, treat this as a **working architecture baseline**, not as a replacement for the accepted ADRs or PRD.
+1. ✅ ADR placeholders replaced with the exact accepted ADR filenames, titles, and statuses (Section 11).
+2. ✅ Architectural-style label confirmed as **modular monolithic architecture** against ADR-01.
+3. ✅ Business-module decomposition confirmed against ADR-02 and the PRD.
+4. ✅ Database (MySQL/ADR-04), authentication (Spring Security/ADR-08 + NFR-01), and photograph-storage (local filesystem/ADR-06) choices confirmed.
+5. ✅ Requirement wording cross-checked against `PRD.md` (Revised draft v2, 25 November 2026).
+
+This document remains subordinate to the accepted ADRs and the PRD where any inconsistency appears; report conflicts to the human developer rather than resolving them silently.
