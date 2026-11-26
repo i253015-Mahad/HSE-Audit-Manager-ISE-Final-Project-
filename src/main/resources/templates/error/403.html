@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Access denied')}"></head>
+<body>
+
+<header th:replace="~{fragments :: topbar}"></header>
+
+<main class="container narrow">
+    <section class="card">
+        <h1>Access denied</h1>
+        <p>Your account is not permitted to view this page or perform this action.</p>
+        <p class="note" th:if="${reason != null}" th:text="${reason}">Reason</p>
+        <p><a th:href="@{/}">Back to my start page</a></p>
+    </section>
+</main>
+
+</body>
+</html>

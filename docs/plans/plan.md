@@ -85,7 +85,7 @@ Full criteria live in `docs/PRD.md` §11 (AC-01…AC-41). Per-slice mapping:
 
 | Slice | PRD Acceptance Criteria |
 |---|---|
-| 1 | AC-01 (Inspector submits), AC-02…AC-03 (roles), NFR-01 (auth) |
+| 1 | NFR-01 (email + password auth), AC-32 (role-appropriate interface), AC-33 (deny everything outside permission matrix) |
 | 2 | AC-04…AC-08, AC-37 (dup check), AC-41 (reject-notify-only-owner precondition) |
 | 3 | AC-09…AC-15, AC-34 (resubmit + version) |
 | 4 | AC-16…AC-24, AC-40 (audit + corrective restore) |
@@ -99,7 +99,7 @@ Full criteria live in `docs/PRD.md` §11 (AC-01…AC-41). Per-slice mapping:
 
 | Slice | Status |
 |---|---|
-| 1 — Foundation & Auth | Not started |
+| 1 — Foundation & Auth | **Complete** |
 | 2 — Report Creation & Photos | Not started |
 | 3 — Approval & Rejection | Not started |
 | 4 — Visibility & Corrective Actions | Not started |
@@ -107,7 +107,7 @@ Full criteria live in `docs/PRD.md` §11 (AC-01…AC-41). Per-slice mapping:
 | 6 — Delete, Restore & Audit | Not started |
 | 7 — Retention Purge & Dashboard | Not started |
 
-**Overall:** Documentation complete; implementation not yet started.
+**Overall:** Documentation complete; Slice 1 implemented and passing (32 tests). Slices 2–7 not started.
 
 ---
 

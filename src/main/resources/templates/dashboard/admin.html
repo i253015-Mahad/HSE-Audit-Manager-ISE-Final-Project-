@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Admin')}"></head>
+<body>
+
+<header th:replace="~{fragments :: topbar}"></header>
+
+<main class="container">
+    <h1>HSE Engineer / Admin</h1>
+    <p class="lead">Cross-project oversight across all projects.</p>
+
+    <section class="card">
+        <h2>All projects</h2>
+        <p class="note" th:if="${#lists.isEmpty(projects)}">No projects exist yet.</p>
+        <ul class="list" th:unless="${#lists.isEmpty(projects)}">
+            <li th:each="project : ${projects}">
+                <span th:text="${project.name}">Project</span>
+                <span class="muted" th:text="'#' + ${project.id}">#1</span>
+            </li>
+        </ul>
+    </section>
+</main>
+
+</body>
+</html>
