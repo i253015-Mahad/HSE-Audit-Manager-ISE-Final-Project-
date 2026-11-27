@@ -8,20 +8,20 @@ import java.time.LocalDate;
 
 public interface SafetyReportRepository extends JpaRepository<SafetyReport, Long> {
 
-    /** FR-06: incident date + location + type and identical violation description, excluding deleted reports. */
+    /** FR-06: observation date + location + type and identical brief description, excluding deleted reports. */
     @Query("""
         select count(v)
         from SafetyReport r join r.violations v
         where r.deleted = false
           and (:excludedReportId is null or r.id <> :excludedReportId)
-          and r.incidentDate = :incidentDate
+          and r.observationDate = :observationDate
           and r.location = :location
-          and r.incidentType = :incidentType
-          and v.description = :description
+          and r.observationType = :observationType
+          and v.briefDescription = :briefDescription
         """)
     long countDuplicates(@Param("excludedReportId") Long excludedReportId,
-                            @Param("incidentDate") LocalDate incidentDate,
-                            @Param("location") String location,
-                            @Param("incidentType") IncidentType incidentType,
-                            @Param("description") String description);
+                         @Param("observationDate") LocalDate observationDate,
+                         @Param("location") String location,
+                         @Param("observationType") IncidentType observationType,
+                         @Param("briefDescription") String briefDescription);
 }

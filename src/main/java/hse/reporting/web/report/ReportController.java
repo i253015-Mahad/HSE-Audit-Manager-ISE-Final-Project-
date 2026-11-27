@@ -1,6 +1,7 @@
 package hse.reporting.web.report;
 
 import hse.reporting.application.project.ProjectSelectionQuery;
+import hse.reporting.application.report.ObserverProfileQuery;
 import hse.reporting.application.report.ReportSubmissionCommand;
 import hse.reporting.application.report.ReportSubmissionResult;
 import hse.reporting.application.report.ReportSubmissionUseCase;
@@ -30,15 +31,18 @@ public class ReportController {
 
     private final ReportSubmissionUseCase submission;
     private final ProjectSelectionQuery projects;
+    private final ObserverProfileQuery observers;
     private final ReportFormValidator formValidator;
     private final ReportOptions options;
 
     public ReportController(ReportSubmissionUseCase submission,
                             ProjectSelectionQuery projects,
+                            ObserverProfileQuery observers,
                             ReportFormValidator formValidator,
                             ReportOptions options) {
         this.submission = submission;
         this.projects = projects;
+        this.observers = observers;
         this.formValidator = formValidator;
         this.options = options;
     }
@@ -58,6 +62,9 @@ public class ReportController {
                          RedirectAttributes redirectAttributes) {
         formValidator.validate(form, binding);
         if (binding.hasErrors()) {
+            if (form.getViolations().isEmpty()) {
+                form.getViolations().add(new ViolationForm());
+            }
             return renderForm(form, model);
         }
 
@@ -79,12 +86,26 @@ public class ReportController {
     }
 
     private String renderForm(ReportForm form, Model model) {
+        var observer = observers.currentObserver();
+        List<ProjectSelectionQuery.ProjectOption> projectOptions = projects.availableForCurrentInspector();
+        String selectedManagerEmail = projectOptions.stream()
+            .filter(project -> project.id().equals(form.getProjectId()))
+            .map(ProjectSelectionQuery.ProjectOption::managerEmail)
+            .findFirst()
+            .orElse(null);
+
         model.addAttribute("reportForm", form);
-        model.addAttribute("projects", projects.availableForCurrentInspector());
-        model.addAttribute("hazardCategories", options.getHazardCategories());
-        model.addAttribute("severityLevels", options.getSeverityLevels());
+        model.addAttribute("observer", observer);
+        model.addAttribute("projects", projectOptions);
+        model.addAttribute("selectedManagerEmail", selectedManagerEmail);
+        model.addAttribute("observationHazards", options.getObservationHazards());
+        model.addAttribute("riskRatings", options.getRiskRatings());
         model.addAttribute("otherOption", options.getOtherOption());
-        model.addAttribute("incidentTypes", IncidentType.values());
+        model.addAttribute("observationTypes", IncidentType.values());
+        if (observer == null && !model.containsAttribute("formError")) {
+            model.addAttribute("formError",
+                "Your SOR observer profile is not provisioned. Contact your HSE administrator.");
+        }
         return "report/new";
     }
 
@@ -102,24 +123,25 @@ public class ReportController {
                 }
             }
             violations.add(new ReportSubmissionCommand.ViolationSubmission(
-                violation.getDescription(),
-                violation.getHazardCategory(),
-                violation.getHazardCategoryOther(),
-                violation.getSeverityLevel(),
-                violation.getSeverityLevelOther(),
-                violation.getImmediateAction(),
-                violation.getIncidentDate(),
-                violation.getLocation(),
-                violation.getIncidentType(),
+                violation.getBriefDescription(),
+                violation.getObservationHazard(),
+                violation.getObservationHazardOther(),
+                violation.getRiskRating(),
+                violation.getRiskRatingOther(),
+                violation.getActionRecommended(),
+                violation.getViolatorName(),
+                violation.getViolatorBadgeNo(),
+                violation.getViolatorTitle(),
+                violation.getTaskIncharge(),
                 photos));
         }
         return new ReportSubmissionCommand(
             form.getSubmissionToken(),
             form.getProjectId(),
-            form.getIncidentDate(),
-            form.getIncidentTime(),
+            form.getObservationDate(),
+            form.getObservationTime(),
             form.getLocation(),
-            form.getIncidentType(),
+            form.getObservationType(),
             violations);
     }
 }

@@ -7,7 +7,7 @@ import org.springframework.validation.Validator;
 
 import java.util.List;
 
-/** Form-level feedback for the team-supplied lists and their OTHER free-text option. */
+/** Form-level feedback for the SOR lists, OTHER free text and required violator details. */
 @Component
 public class ReportFormValidator implements Validator {
 
@@ -28,21 +28,33 @@ public class ReportFormValidator implements Validator {
         if (form.getProjectId() == null) {
             errors.rejectValue("projectId", "project.required", "Select a project.");
         }
-        if (form.getIncidentType() == null) {
-            errors.rejectValue("incidentType", "incidentType.required", "Select the incident type.");
-        }
-
         List<ViolationForm> violations = form.getViolations();
         for (int i = 0; i < violations.size(); i++) {
             ViolationForm violation = violations.get(i);
             String path = "violations[" + i + "]";
-            if (violation.getDescription() == null || violation.getDescription().isBlank()) {
-                errors.rejectValue(path + ".description", "description.required", "Enter a violation description.");
-            }
-            validateChoice(errors, path + ".hazardCategory", violation.getHazardCategory(),
-                violation.getHazardCategoryOther(), options.getHazardCategories(), "hazard category");
-            validateChoice(errors, path + ".severityLevel", violation.getSeverityLevel(),
-                violation.getSeverityLevelOther(), options.getSeverityLevels(), "severity level");
+            requireText(errors, path + ".briefDescription", violation.getBriefDescription(),
+                "Enter a brief description.");
+            requireText(errors, path + ".actionRecommended", violation.getActionRecommended(),
+                "Enter the action recommended.");
+            requireText(errors, path + ".violatorName", violation.getViolatorName(),
+                "Enter the violator's name.");
+            requireText(errors, path + ".violatorBadgeNo", violation.getViolatorBadgeNo(),
+                "Enter the violator's badge number.");
+            requireText(errors, path + ".violatorTitle", violation.getViolatorTitle(),
+                "Enter the violator's title.");
+            requireText(errors, path + ".taskIncharge", violation.getTaskIncharge(),
+                "Enter the task incharge.");
+
+            validateChoice(errors, path + ".observationHazard", violation.getObservationHazard(),
+                violation.getObservationHazardOther(), options.getObservationHazards(), "observation hazard");
+            validateChoice(errors, path + ".riskRating", violation.getRiskRating(),
+                violation.getRiskRatingOther(), options.getRiskRatings(), "risk rating");
+        }
+    }
+
+    private void requireText(Errors errors, String field, String value, String message) {
+        if (value == null || value.isBlank()) {
+            errors.rejectValue(field, field + ".required", message);
         }
     }
 

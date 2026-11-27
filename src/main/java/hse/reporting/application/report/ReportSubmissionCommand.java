@@ -7,27 +7,28 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
-/** Use-case input. The acting user is resolved from the security context, not from this object. */
+/** Use-case input. Observer identity and Manager are resolved server-side, never from the form. */
 public record ReportSubmissionCommand(
     String submissionToken,
     Long projectId,
-    LocalDate incidentDate,
-    LocalTime incidentTime,
+    LocalDate observationDate,
+    LocalTime observationTime,
     String location,
-    IncidentType incidentType,
+    IncidentType observationType,
     List<ViolationSubmission> violations
 ) {
 
     public record ViolationSubmission(
-        String description,
-        String hazardCategory,
-        String hazardCategoryOther,
-        String severityLevel,
-        String severityLevelOther,
-        String immediateAction,
-        LocalDate incidentDate,
-        String location,
-        IncidentType incidentType,
+        String briefDescription,
+        String observationHazard,
+        String observationHazardOther,
+        String riskRating,
+        String riskRatingOther,
+        String actionRecommended,
+        String violatorName,
+        String violatorBadgeNo,
+        String violatorTitle,
+        String taskIncharge,
         List<PhotoUpload> photos
     ) {
     }

@@ -42,3 +42,10 @@ INSERT IGNORE INTO inspector_designation (inspector_email, manager_email) VALUES
   ('inspector@hse.test',   'manager@hse.test'),
   ('i253172@nu.edu.pk',    'mahadwaqas28@gmail.com'),
   ('extra.inspector@hse.local', 'extra.manager@hse.local');
+
+-- SOR observer profiles auto-fill Name / Badge No / Title / Company from the
+-- signed-in Inspector. These are demo values for the seeded accounts.
+INSERT IGNORE INTO observer_profile (email, full_name, badge_no, title, company) VALUES
+  ('inspector@hse.test', 'Eman Ishaq', 'SOR-0142', 'Safety Inspector', 'HSE Department'),
+  ('i253172@nu.edu.pk', 'Inspector I253172', 'I-253172', 'Safety Inspector', 'HSE Department'),
+  ('extra.inspector@hse.local', 'Extra Inspector', 'EI-0001', 'Safety Inspector', 'HSE Department');

@@ -6,6 +6,7 @@ import hse.reporting.common.BusinessRuleException;
 import hse.reporting.photo.PhotoStore;
 import hse.reporting.photo.PhotoUpload;
 import hse.reporting.photo.PhotoValidator;
+import hse.reporting.report.ObserverDetails;
 import hse.reporting.report.SafetyReport;
 import hse.reporting.report.SafetyReportRepository;
 import hse.reporting.report.SafetyReportService;
@@ -29,6 +30,7 @@ public class ReportSubmissionUseCase {
     private final AuthorizationPort authorization;
     private final ProjectEligibilityPort projectEligibility;
     private final CurrentActorService currentActor;
+    private final ObserverProfileQuery observers;
     private final SafetyReportService reportService;
     private final SafetyReportRepository reports;
     private final PhotoValidator photoValidator;
@@ -38,6 +40,7 @@ public class ReportSubmissionUseCase {
     public ReportSubmissionUseCase(AuthorizationPort authorization,
                                    ProjectEligibilityPort projectEligibility,
                                    CurrentActorService currentActor,
+                                   ObserverProfileQuery observers,
                                    SafetyReportService reportService,
                                    SafetyReportRepository reports,
                                    PhotoValidator photoValidator,
@@ -46,6 +49,7 @@ public class ReportSubmissionUseCase {
         this.authorization = authorization;
         this.projectEligibility = projectEligibility;
         this.currentActor = currentActor;
+        this.observers = observers;
         this.reportService = reportService;
         this.reports = reports;
         this.photoValidator = photoValidator;
@@ -82,32 +86,36 @@ public class ReportSubmissionUseCase {
             return new ReportSubmissionResult(token.getReportId(), true);
         }
 
+        ObserverDetails observer = observers.requireCurrentObserver();
+
         List<ReportSubmissionCommand.ViolationSubmission> submittedViolations = command.violations();
         if (submittedViolations == null) {
             submittedViolations = List.of();
         }
         List<ViolationDraft> drafts = submittedViolations.stream()
             .map(violation -> new ViolationDraft(
-                violation.description(),
-                violation.hazardCategory(),
-                violation.hazardCategoryOther(),
-                violation.severityLevel(),
-                violation.severityLevelOther(),
-                violation.immediateAction(),
-                violation.incidentDate(),
-                violation.location(),
-                violation.incidentType()))
+                violation.briefDescription(),
+                violation.observationHazard(),
+                violation.observationHazardOther(),
+                violation.riskRating(),
+                violation.riskRatingOther(),
+                violation.actionRecommended(),
+                violation.violatorName(),
+                violation.violatorBadgeNo(),
+                violation.violatorTitle(),
+                violation.taskIncharge()))
             .toList();
 
-        reportService.validate(command.incidentDate(), command.location(), command.incidentType(), drafts, null);
+        reportService.validate(command.observationDate(), command.location(), command.observationType(),
+            drafts, null);
         for (ReportSubmissionCommand.ViolationSubmission violation : submittedViolations) {
             photoValidator.validate(violation.photos());
         }
 
         LocalDateTime submittedAt = LocalDateTime.now();
-        SafetyReport report = reportService.createReport(command.projectId(), inspectorEmail,
-            command.incidentDate(), command.incidentTime(), command.location(), command.incidentType(),
-            drafts, submittedAt);
+        SafetyReport report = reportService.createReport(command.projectId(), inspectorEmail, observer,
+            eligibility.managerEmail(), command.observationDate(), command.observationTime(),
+            command.location(), command.observationType(), drafts, submittedAt);
         SafetyReport saved = reports.saveAndFlush(report);
 
         List<String> writtenFiles = new ArrayList<>();

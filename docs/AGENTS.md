@@ -170,7 +170,7 @@ Use the terminology and rules in `PRD.md`, `architecture.md`, and the glossary.
 - A Safety Team Inspector creates and submits a standardized safety report.
 - Submission and report progress are separate concepts. Do not treat `Submitted` as an `Open`/`Closed` progress status.
 - Report progress uses only the agreed `Open` and `Closed` states unless an approved requirement changes this.
-- Multiple safety violations are supported only when the report concerns an incident; an incident is identified by date + location + incident type (PRD FR-05).
+- Multiple safety violations are supported only when the report concerns one observation; an observation is identified by observation date + location + type, while observation time is recorded but excluded from identity and duplicate checks (PRD FR-05, FR-06). Observer details from the signed-in Inspector's profile and the selected project's Manager email are snapshotted on submission (PRD FR-03, FR-44).
 - Only a Rejected report may be edited, and only by its owning Inspector, who may then resubmit it; each submission/resubmission saves an immutable version snapshot (PRD FR-43, FR-44).
 - Rejection stores a reason with the report and creates an in-system notification for the owning Inspector (PRD FR-42); there is no other user-to-user messaging.
 - A Manager's access is limited to projects assigned to that Manager.

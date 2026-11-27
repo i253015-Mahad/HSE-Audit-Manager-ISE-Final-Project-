@@ -13,7 +13,7 @@
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
--- Users, roles and credentials (NFR-01: login with company-issued email).
+-- Users, roles and credentials (NFR-01: login with company email and password).
 -- Account creation, password reset and lockout are outside the software
 -- (PRD section 2.2); rows are provisioned by Account Administration.
 -- ---------------------------------------------------------------------------
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS projects (
   DEFAULT CHARSET = utf8mb4;
 
 -- ---------------------------------------------------------------------------
--- Slice 3 additions (Report Creation & Photo Evidence).
+-- Slice 3 additions (SOR creation & Photo Evidence).
 -- The shared `users` and `projects` tables above remain owned by Slice 1/6.
 -- ---------------------------------------------------------------------------
 
@@ -66,50 +66,76 @@ CREATE TABLE IF NOT EXISTS inspector_designation (
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
 
+-- SOR-owned observer profile: auto-fills the SOR header from the signed-in Inspector.
+CREATE TABLE IF NOT EXISTS observer_profile (
+    email       VARCHAR(255) NOT NULL,
+    full_name   VARCHAR(255) NOT NULL,
+    badge_no    VARCHAR(255) NOT NULL,
+    title       VARCHAR(255) NOT NULL,
+    company     VARCHAR(255) NOT NULL,
+    PRIMARY KEY (email)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
 CREATE TABLE IF NOT EXISTS safety_report (
     id                BIGINT       NOT NULL AUTO_INCREMENT,
     project_id        BIGINT       NOT NULL,
     inspector_email   VARCHAR(255) NOT NULL,
-    incident_date     DATE         NOT NULL,
-    incident_time     TIME         NOT NULL,
+    observer_name     VARCHAR(255) NOT NULL,
+    observer_badge_no VARCHAR(255) NOT NULL,
+    observer_title    VARCHAR(255) NOT NULL,
+    observer_company  VARCHAR(255) NOT NULL,
+    manager_email     VARCHAR(255) NOT NULL,
+    observation_date  DATE         NOT NULL,
+    observation_time  TIME         NOT NULL,
     location          VARCHAR(255) NOT NULL,
-    incident_type     VARCHAR(255) NOT NULL,
+    observation_type  VARCHAR(255) NOT NULL,
     submission_status VARCHAR(255) NOT NULL,
     progress_status   VARCHAR(255) NULL,
     deleted           BIT(1)       NOT NULL DEFAULT b'0',
     submitted_at      DATETIME(6)  NOT NULL,
     PRIMARY KEY (id),
     KEY idx_safety_report_project (project_id),
-    KEY idx_safety_report_inspector (inspector_email)
+    KEY idx_safety_report_inspector (inspector_email),
+    KEY idx_safety_report_manager (manager_email)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
 
 CREATE TABLE IF NOT EXISTS safety_violation (
-    id                   BIGINT        NOT NULL AUTO_INCREMENT,
-    report_id            BIGINT        NOT NULL,
-    description          VARCHAR(2000) NOT NULL,
-    hazard_category      VARCHAR(255)  NOT NULL,
-    hazard_category_other VARCHAR(255) NULL,
-    severity_level       VARCHAR(255)  NOT NULL,
-    severity_level_other VARCHAR(255)  NULL,
-    immediate_action     VARCHAR(2000) NULL,
+    id                      BIGINT        NOT NULL AUTO_INCREMENT,
+    report_id               BIGINT        NOT NULL,
+    brief_description       VARCHAR(2000) NOT NULL,
+    observation_hazard      VARCHAR(255)  NOT NULL,
+    observation_hazard_other VARCHAR(255)  NULL,
+    risk_rating             VARCHAR(255)  NOT NULL,
+    risk_rating_other       VARCHAR(255)  NULL,
+    action_recommended      VARCHAR(2000) NULL,
+    violator_name           VARCHAR(255)  NOT NULL,
+    violator_badge_no       VARCHAR(255)  NOT NULL,
+    violator_title          VARCHAR(255)  NOT NULL,
+    task_incharge           VARCHAR(255)  NOT NULL,
     PRIMARY KEY (id),
     KEY idx_violation_report (report_id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
 
 CREATE TABLE IF NOT EXISTS report_version (
-    id              BIGINT       NOT NULL AUTO_INCREMENT,
-    report_id       BIGINT       NOT NULL,
-    version_number  INT          NOT NULL,
-    submitted_at    DATETIME(6)  NOT NULL,
-    project_id      BIGINT       NOT NULL,
-    inspector_email VARCHAR(255) NOT NULL,
-    incident_date   DATE         NOT NULL,
-    incident_time   TIME         NOT NULL,
-    location        VARCHAR(255) NOT NULL,
-    incident_type   VARCHAR(255) NOT NULL,
-    violations_json TEXT         NOT NULL,
+    id                BIGINT       NOT NULL AUTO_INCREMENT,
+    report_id         BIGINT       NOT NULL,
+    version_number    INT          NOT NULL,
+    submitted_at      DATETIME(6)  NOT NULL,
+    project_id        BIGINT       NOT NULL,
+    inspector_email   VARCHAR(255) NOT NULL,
+    observer_name     VARCHAR(255) NOT NULL,
+    observer_badge_no VARCHAR(255) NOT NULL,
+    observer_title    VARCHAR(255) NOT NULL,
+    observer_company  VARCHAR(255) NOT NULL,
+    manager_email     VARCHAR(255) NOT NULL,
+    observation_date  DATE         NOT NULL,
+    observation_time  TIME         NOT NULL,
+    location          VARCHAR(255) NOT NULL,
+    observation_type  VARCHAR(255) NOT NULL,
+    violations_json   TEXT         NOT NULL,
     PRIMARY KEY (id),
     KEY idx_version_report (report_id)
 ) ENGINE = InnoDB

@@ -1,6 +1,8 @@
 (function () {
     const container = document.getElementById('violations');
-    if (!container) return;
+    const addButton = document.getElementById('add-violation');
+    const template = document.getElementById('violation-template');
+    if (!container || !addButton || !template) return;
 
     function toggleOtherField(row, select) {
         const kind = select.dataset.otherField;
@@ -27,34 +29,68 @@
             });
             const label = row.querySelector('.violation-number');
             if (label) label.textContent = String(index + 1);
+            const remove = row.querySelector('.remove-violation');
+            if (remove) remove.hidden = index === 0;
+        });
+        syncObservationMirrors();
+    }
+
+    function syncObservationMirrors() {
+        const source = container.querySelector('.violation-row:first-child');
+        if (!source) return;
+
+        const values = {};
+        source.querySelectorAll('[data-observation-field]').forEach(field => {
+            values[field.dataset.observationField] = field.value;
+        });
+
+        container.querySelectorAll('.violation-row:not(:first-child)').forEach(row => {
+            row.querySelectorAll('.observation-mirror').forEach(field => {
+                const value = values[field.dataset.observationField] || '';
+                field.value = value;
+                if (field.tagName === 'SELECT') {
+                    field.selectedIndex = value ? Array.from(field.options)
+                        .findIndex(option => option.value === value) : 0;
+                }
+            });
         });
     }
 
-    document.getElementById('add-violation').addEventListener('click', () => {
-        const rows = container.querySelectorAll('.violation-row');
-        if (!rows.length) return;
-        const clone = rows[rows.length - 1].cloneNode(true);
-        clone.querySelectorAll('input, textarea, select').forEach(element => {
+    function clearRow(row) {
+        row.querySelectorAll('input, textarea, select').forEach(element => {
+            if (element.classList.contains('observation-mirror') || element.classList.contains('readonly')) return;
+            if (element.readOnly) return;
             if (element.type === 'file') {
                 element.value = '';
             } else if (element.tagName === 'SELECT') {
                 element.selectedIndex = 0;
+            } else if (element.type === 'checkbox' || element.type === 'radio') {
+                element.checked = false;
             } else {
                 element.value = '';
             }
         });
+        row.querySelectorAll('.other-field').forEach(field => field.classList.remove('is-visible'));
+        syncOtherFields(row);
+    }
+
+    addButton.addEventListener('click', () => {
+        const clone = template.content.firstElementChild.cloneNode(true);
         container.appendChild(clone);
-        syncOtherFields(clone);
+        clearRow(clone);
         reindex();
+        syncOtherFields(clone);
+        syncObservationMirrors();
+        clone.querySelector('input, select, textarea')?.focus();
     });
 
     container.querySelectorAll('.violation-row').forEach(syncOtherFields);
+    reindex();
 
     container.addEventListener('click', event => {
         const button = event.target.closest('.remove-violation');
         if (!button) return;
         if (container.querySelectorAll('.violation-row').length <= 1) {
-            alert('A report needs at least one violation.');
             return;
         }
         button.closest('.violation-row').remove();
@@ -68,8 +104,25 @@
         }
         if (event.target.type !== 'file') return;
         if (event.target.files.length > 3) {
-            alert('A violation may have at most 3 photographs.');
+            alert('An observation may have at most 3 photographs.');
             event.target.value = '';
         }
     });
+
+    container.addEventListener('input', event => {
+        if (event.target.matches('[data-observation-field]:not(.observation-mirror)')) {
+            syncObservationMirrors();
+        }
+    });
+
+    const project = document.getElementById('project');
+    const manager = document.getElementById('manager');
+    if (project && manager) {
+        const updateManager = () => {
+            const selected = project.options[project.selectedIndex];
+            manager.value = selected ? (selected.dataset.manager || '') : '';
+        };
+        project.addEventListener('change', updateManager);
+        updateManager();
+    }
 })();

@@ -49,6 +49,6 @@ public class ProjectEligibilityService implements ProjectEligibilityPort {
         if (!project.getManagerEmail().equalsIgnoreCase(designation.getManagerEmail())) {
             return Eligibility.refuse("The project is not handled by your Manager.");
         }
-        return Eligibility.permit();
+        return Eligibility.permit(project.getManagerEmail());
     }
 }

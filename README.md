@@ -45,8 +45,8 @@ The merged application uses `root` with an empty local development password by d
 Override with `HSE_DB_URL` / `HSE_DB_USERNAME` / `HSE_DB_PASSWORD` if you use the
 partners' MySQL instance or their `hse` / `hse-dev-pass` account instead.
 
-On startup Spring runs `schema.sql` (idempotent DDL, now including the Slice 3
-report/photo and designation tables) and `data.sql` (demo seeds). Hibernate runs with
+On startup Spring runs `schema.sql` (idempotent DDL, now including the SOR report/photo,
+observer-profile and designation tables) and `data.sql` (demo seeds). Hibernate runs with
 `ddl-auto=validate`, so entities are checked against the schema rather than generating DDL.
 
 ### 2. Run the application
@@ -68,17 +68,23 @@ Open <http://127.0.0.1:8080/login>.
 | `manager@hse.test` | Manager | `password` | Manager of Sample Site |
 | `admin@hse.test` | Admin | `password` | Slice 3 admin account |
 
+The seeded Inspector accounts also have `observer_profile` rows that auto-fill the
+SOR Name / Badge No / Title / Company fields.
+
 ### 4. Browser preview and testing
 
 1. Sign in as `inspector@hse.test` / `password`. The login page uses the shared
    login-card design.
 2. The Inspector dashboard shows the shared topbar (brand, role badge, email, log out)
-   and a **New report** navlink; click it to open `/reports/new`.
-3. On the report form, verify the same topbar/card styling, fill one incident, add a
-   violation, choose from the example hazard/severity dropdown lists, then select
-   **OTHER** to reveal and complete the free-text field. Attach a JPEG/PNG (max 3,
-   10 MB each), and submit. Override the lists with `HSE_HAZARD_CATEGORIES` and
-   `HSE_SEVERITY_LEVELS` if the team supplies different values.
+   and a **+ New report** button at the top-right; click it to open `/reports/new`.
+3. On the **Add Report** form, verify the same topbar/card styling and the SOR sections:
+   SOR Details, Observer Details (auto-filled from the signed-in Inspector's profile),
+   Observation Details (date/time/location/type shared by every observation), each
+   observation's Observation Hazard / Risk Rating and Violator Details, then Images.
+   Select **OTHER** in either configured list to reveal and complete its free-text field.
+   Choose a project to auto-fill the Manager; add another observation for extra violations.
+   Attach JPEG/PNG images (max 3, 10 MB each) and submit. Override the lists with
+   `HSE_OBSERVATION_HAZARDS` and `HSE_RISK_RATINGS` if the team supplies different values.
 4. The submitted page confirms the report is **Pending Approval** in the shared
    styling. Reloading/re-submitting the token shows the duplicate-submission warning
    without creating a second report.
@@ -91,7 +97,7 @@ Open <http://127.0.0.1:8080/login>.
 mvn test          # uses an in-memory H2 database (test profile), no MySQL needed
 ```
 
-The merged suite currently has **70 tests, 0 failures**.
+The merged suite currently has **78 tests, 0 failures**.
 
 ## Documentation
 

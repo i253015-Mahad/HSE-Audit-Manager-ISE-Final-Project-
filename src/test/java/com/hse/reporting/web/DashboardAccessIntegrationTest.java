@@ -74,7 +74,12 @@ class DashboardAccessIntegrationTest {
     void loginAndSessionExpiredPagesArePublic() throws Exception {
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Sign in")));
+                .andExpect(content().string(containsString("Sign in")))
+                .andExpect(content().string(containsString("id=\"password\"")))
+                .andExpect(content().string(containsString("id=\"password-toggle\"")))
+                .andExpect(content().string(containsString("type=\"button\"")))
+                .andExpect(content().string(containsString("aria-label=\"Show password\"")))
+                .andExpect(content().string(containsString("src=\"/js/login.js\"")));
 
         mockMvc.perform(get("/403"))
                 .andExpect(status().isOk())
@@ -98,6 +103,9 @@ class DashboardAccessIntegrationTest {
         mockMvc.perform(get("/admin").session(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("HSE Engineer / Admin")))
+                .andExpect(content().string(containsString("href=\"/admin\">ADMIN</a>")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        containsString(">Admin</a>"))))
                 .andExpect(content().string(containsString("Head Office Fit-Out")))
                 .andExpect(content().string(containsString("Site A Laboratory")));
     }
@@ -108,6 +116,9 @@ class DashboardAccessIntegrationTest {
 
         mockMvc.perform(get("/manager").session(session))
                 .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/manager\">MANAGER</a>")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        containsString(">Manager</a>"))))
                 .andExpect(content().string(containsString("Head Office Fit-Out")))
                 .andExpect(content().string(containsString(MANAGER_EMAIL)))
                 // project scope: never a project assigned to somebody else
@@ -127,7 +138,10 @@ class DashboardAccessIntegrationTest {
 
         mockMvc.perform(get("/inspector").session(session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Inspector")));
+                .andExpect(content().string(containsString("Inspector")))
+                .andExpect(content().string(containsString("href=\"/inspector\">INSPECTOR</a>")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        containsString(">Inspector</a>"))));
     }
 
     @Test
@@ -147,7 +161,9 @@ class DashboardAccessIntegrationTest {
     void adminSeesItsOwnInterface() throws Exception {
         mockMvc.perform(get("/admin"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("HSE Engineer / Admin")));
+                .andExpect(content().string(containsString("HSE Engineer / Admin")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        containsString("+ New report"))));
     }
 
     @Test
@@ -155,7 +171,9 @@ class DashboardAccessIntegrationTest {
     void managerSeesItsOwnInterface() throws Exception {
         mockMvc.perform(get("/manager"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("My projects")));
+                .andExpect(content().string(containsString("My projects")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        containsString("+ New report"))));
     }
 
     @Test
@@ -163,7 +181,10 @@ class DashboardAccessIntegrationTest {
     void inspectorSeesItsOwnInterface() throws Exception {
         mockMvc.perform(get("/inspector"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Safety Team Inspector")));
+                .andExpect(content().string(containsString("Safety Team Inspector")))
+                .andExpect(content().string(containsString("+ New report")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        containsString(">New report</a>"))));
     }
 
     @Test

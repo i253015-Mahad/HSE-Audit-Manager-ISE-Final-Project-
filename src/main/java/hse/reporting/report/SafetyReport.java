@@ -17,7 +17,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Report content and lifecycle are owned by Safety Report Management. */
+/** SOR content and lifecycle are owned by Safety Report Management. */
 @Entity
 @Table(name = "safety_report")
 public class SafetyReport {
@@ -32,19 +32,35 @@ public class SafetyReport {
     @Column(name = "inspector_email", nullable = false)
     private String inspectorEmail;
 
-    /** Incident identity is date + location + type (OQ-02); time is not part of it. */
-    @Column(name = "incident_date", nullable = false)
-    private LocalDate incidentDate;
+    @Column(name = "observer_name", nullable = false)
+    private String observerName;
 
-    @Column(name = "incident_time", nullable = false)
-    private LocalTime incidentTime;
+    @Column(name = "observer_badge_no", nullable = false)
+    private String observerBadgeNo;
+
+    @Column(name = "observer_title", nullable = false)
+    private String observerTitle;
+
+    @Column(name = "observer_company", nullable = false)
+    private String observerCompany;
+
+    /** Snapshot of the selected project's Manager at submission (FR-03). */
+    @Column(name = "manager_email", nullable = false)
+    private String managerEmail;
+
+    /** Observation identity is date + location + type (OQ-02); time is not part of it. */
+    @Column(name = "observation_date", nullable = false)
+    private LocalDate observationDate;
+
+    @Column(name = "observation_time", nullable = false)
+    private LocalTime observationTime;
 
     @Column(nullable = false)
     private String location;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "incident_type", nullable = false)
-    private IncidentType incidentType;
+    @Column(name = "observation_type", nullable = false)
+    private IncidentType observationType;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "submission_status", nullable = false)
@@ -67,14 +83,20 @@ public class SafetyReport {
     protected SafetyReport() {
     }
 
-    public SafetyReport(Long projectId, String inspectorEmail, LocalDate incidentDate, LocalTime incidentTime,
-                        String location, IncidentType incidentType, LocalDateTime submittedAt) {
+    public SafetyReport(Long projectId, String inspectorEmail, ObserverDetails observer, String managerEmail,
+                        LocalDate observationDate, LocalTime observationTime, String location,
+                        IncidentType observationType, LocalDateTime submittedAt) {
         this.projectId = projectId;
         this.inspectorEmail = inspectorEmail;
-        this.incidentDate = incidentDate;
-        this.incidentTime = incidentTime;
+        this.observerName = observer.name();
+        this.observerBadgeNo = observer.badgeNumber();
+        this.observerTitle = observer.title();
+        this.observerCompany = observer.company();
+        this.managerEmail = managerEmail;
+        this.observationDate = observationDate;
+        this.observationTime = observationTime;
         this.location = location;
-        this.incidentType = incidentType;
+        this.observationType = observationType;
         this.submittedAt = submittedAt;
         this.submissionStatus = SubmissionStatus.PENDING_APPROVAL;
         this.progressStatus = null;
@@ -93,20 +115,40 @@ public class SafetyReport {
         return inspectorEmail;
     }
 
-    public LocalDate getIncidentDate() {
-        return incidentDate;
+    public String getObserverName() {
+        return observerName;
     }
 
-    public LocalTime getIncidentTime() {
-        return incidentTime;
+    public String getObserverBadgeNo() {
+        return observerBadgeNo;
+    }
+
+    public String getObserverTitle() {
+        return observerTitle;
+    }
+
+    public String getObserverCompany() {
+        return observerCompany;
+    }
+
+    public String getManagerEmail() {
+        return managerEmail;
+    }
+
+    public LocalDate getObservationDate() {
+        return observationDate;
+    }
+
+    public LocalTime getObservationTime() {
+        return observationTime;
     }
 
     public String getLocation() {
         return location;
     }
 
-    public IncidentType getIncidentType() {
-        return incidentType;
+    public IncidentType getObservationType() {
+        return observationType;
     }
 
     public SubmissionStatus getSubmissionStatus() {

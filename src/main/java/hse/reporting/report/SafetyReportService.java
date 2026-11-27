@@ -30,47 +30,55 @@ public class SafetyReportService {
      * FR-02, FR-05 and FR-06. {@code excludedReportId} is the report being
      * edited/resubmitted (Slice 4); it is null for a first submission.
      */
-    public void validate(LocalDate incidentDate, String location, IncidentType incidentType,
+    public void validate(LocalDate observationDate, String location, IncidentType observationType,
                          List<ViolationDraft> drafts, Long excludedReportId) {
         if (drafts == null || drafts.isEmpty()) {
             throw new BusinessRuleException("A report must contain at least one violation.");
         }
 
         for (ViolationDraft draft : drafts) {
-            if (draft.description() == null || draft.description().isBlank()) {
-                throw new BusinessRuleException("Every violation needs a description.");
+            if (draft.briefDescription() == null || draft.briefDescription().isBlank()) {
+                throw new BusinessRuleException("Every violation needs a brief description.");
             }
-            if (draft.hazardCategory() == null || draft.hazardCategory().isBlank()
-                || draft.severityLevel() == null || draft.severityLevel().isBlank()) {
-                throw new BusinessRuleException("Every violation needs a hazard category and severity level.");
+            if (draft.observationHazard() == null || draft.observationHazard().isBlank()
+                || draft.riskRating() == null || draft.riskRating().isBlank()) {
+                throw new BusinessRuleException("Every violation needs an observation hazard and risk rating.");
             }
-            if (isDifferentIncident(incidentDate, location, incidentType, draft)) {
-                throw new BusinessRuleException("A report cannot combine violations from different incidents.");
+            if (draft.violatorName() == null || draft.violatorName().isBlank()
+                || draft.violatorBadgeNo() == null || draft.violatorBadgeNo().isBlank()
+                || draft.violatorTitle() == null || draft.violatorTitle().isBlank()
+                || draft.taskIncharge() == null || draft.taskIncharge().isBlank()) {
+                throw new BusinessRuleException("Every violation needs complete violator details.");
             }
         }
 
         for (ViolationDraft draft : drafts) {
-            if (reports.countDuplicates(excludedReportId, incidentDate, location, incidentType,
-                    draft.description().trim()) > 0) {
+            if (reports.countDuplicates(excludedReportId, observationDate, location, observationType,
+                    draft.briefDescription().trim()) > 0) {
                 throw new BusinessRuleException(
-                    "A violation with this incident and identical description already exists in an active report.");
+                    "A violation with this observation and identical description already exists in an active report.");
             }
         }
     }
 
-    public SafetyReport createReport(Long projectId, String inspectorEmail, LocalDate incidentDate,
-                                     LocalTime incidentTime, String location, IncidentType incidentType,
+    public SafetyReport createReport(Long projectId, String inspectorEmail, ObserverDetails observer,
+                                     String managerEmail, LocalDate observationDate, LocalTime observationTime,
+                                     String location, IncidentType observationType,
                                      List<ViolationDraft> drafts, LocalDateTime submittedAt) {
-        SafetyReport report = new SafetyReport(projectId, inspectorEmail, incidentDate, incidentTime,
-            location, incidentType, submittedAt);
+        SafetyReport report = new SafetyReport(projectId, inspectorEmail, observer, managerEmail,
+            observationDate, observationTime, location, observationType, submittedAt);
         for (ViolationDraft draft : drafts) {
             report.addViolation(new Violation(
-                draft.description().trim(),
-                draft.hazardCategory(),
-                draft.hazardCategoryOther(),
-                draft.severityLevel(),
-                draft.severityLevelOther(),
-                draft.immediateAction()));
+                draft.briefDescription().trim(),
+                draft.observationHazard(),
+                draft.observationHazardOther(),
+                draft.riskRating(),
+                draft.riskRatingOther(),
+                draft.actionRecommended(),
+                draft.violatorName().trim(),
+                draft.violatorBadgeNo().trim(),
+                draft.violatorTitle().trim(),
+                draft.taskIncharge().trim()));
         }
         return report;
     }
@@ -84,30 +92,32 @@ public class SafetyReportService {
             report.getSubmittedAt(),
             report.getProjectId(),
             report.getInspectorEmail(),
-            report.getIncidentDate(),
-            report.getIncidentTime(),
+            report.getObserverName(),
+            report.getObserverBadgeNo(),
+            report.getObserverTitle(),
+            report.getObserverCompany(),
+            report.getManagerEmail(),
+            report.getObservationDate(),
+            report.getObservationTime(),
             report.getLocation(),
-            report.getIncidentType(),
+            report.getObservationType(),
             serializeViolations(report));
         versions.save(snapshot);
-    }
-
-    private boolean isDifferentIncident(LocalDate incidentDate, String location, IncidentType incidentType,
-                                        ViolationDraft draft) {
-        return (draft.incidentDate() != null && !draft.incidentDate().equals(incidentDate))
-            || (draft.location() != null && !draft.location().equals(location))
-            || (draft.incidentType() != null && draft.incidentType() != incidentType);
     }
 
     private String serializeViolations(SafetyReport report) {
         List<ViolationSnapshot> snapshots = report.getViolations().stream()
             .map(violation -> new ViolationSnapshot(
-                violation.getDescription(),
-                violation.getHazardCategory(),
-                violation.getHazardCategoryOther(),
-                violation.getSeverityLevel(),
-                violation.getSeverityLevelOther(),
-                violation.getImmediateAction()))
+                violation.getBriefDescription(),
+                violation.getObservationHazard(),
+                violation.getObservationHazardOther(),
+                violation.getRiskRating(),
+                violation.getRiskRatingOther(),
+                violation.getActionRecommended(),
+                violation.getViolatorName(),
+                violation.getViolatorBadgeNo(),
+                violation.getViolatorTitle(),
+                violation.getTaskIncharge()))
             .toList();
         try {
             return objectMapper.writeValueAsString(snapshots);
@@ -116,7 +126,9 @@ public class SafetyReportService {
         }
     }
 
-    private record ViolationSnapshot(String description, String hazardCategory, String hazardCategoryOther,
-                                     String severityLevel, String severityLevelOther, String immediateAction) {
+    private record ViolationSnapshot(String briefDescription, String observationHazard,
+                                     String observationHazardOther, String riskRating, String riskRatingOther,
+                                     String actionRecommended, String violatorName, String violatorBadgeNo,
+                                     String violatorTitle, String taskIncharge) {
     }
 }

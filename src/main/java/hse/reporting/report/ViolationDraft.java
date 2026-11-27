@@ -1,22 +1,20 @@
 package hse.reporting.report;
 
-import java.time.LocalDate;
-
 /**
- * Domain input for one safety violation (FR-03). Incident fields are optional:
- * the standard form has one incident header, so they are normally null. They
- * exist so the single-incident rule can still be enforced if another caller
- * supplies per-violation incident data.
+ * Domain input for one repeated SOR observation/violator block (FR-03).
+ * Observation identity (date/time/location/type) is report-level, so it is
+ * deliberately absent here.
  */
 public record ViolationDraft(
-    String description,
-    String hazardCategory,
-    String hazardCategoryOther,
-    String severityLevel,
-    String severityLevelOther,
-    String immediateAction,
-    LocalDate incidentDate,
-    String location,
-    IncidentType incidentType
+    String briefDescription,
+    String observationHazard,
+    String observationHazardOther,
+    String riskRating,
+    String riskRatingOther,
+    String actionRecommended,
+    String violatorName,
+    String violatorBadgeNo,
+    String violatorTitle,
+    String taskIncharge
 ) {
 }

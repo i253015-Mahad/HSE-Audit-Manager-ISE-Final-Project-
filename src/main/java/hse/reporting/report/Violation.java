@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+/** One SOR observation entry with its own violator details and photograph evidence. */
 @Entity
 @Table(name = "safety_violation")
 public class Violation {
@@ -22,35 +23,52 @@ public class Violation {
     @JoinColumn(name = "report_id", nullable = false)
     private SafetyReport report;
 
-    @Column(nullable = false, length = 2000)
-    private String description;
+    @Column(name = "brief_description", nullable = false, length = 2000)
+    private String briefDescription;
 
-    @Column(name = "hazard_category", nullable = false)
-    private String hazardCategory;
+    @Column(name = "observation_hazard", nullable = false)
+    private String observationHazard;
 
-    @Column(name = "hazard_category_other")
-    private String hazardCategoryOther;
+    @Column(name = "observation_hazard_other")
+    private String observationHazardOther;
 
-    @Column(name = "severity_level", nullable = false)
-    private String severityLevel;
+    @Column(name = "risk_rating", nullable = false)
+    private String riskRating;
 
-    @Column(name = "severity_level_other")
-    private String severityLevelOther;
+    @Column(name = "risk_rating_other")
+    private String riskRatingOther;
 
-    @Column(name = "immediate_action", length = 2000)
-    private String immediateAction;
+    @Column(name = "action_recommended", length = 2000)
+    private String actionRecommended;
+
+    @Column(name = "violator_name", nullable = false)
+    private String violatorName;
+
+    @Column(name = "violator_badge_no", nullable = false)
+    private String violatorBadgeNo;
+
+    @Column(name = "violator_title", nullable = false)
+    private String violatorTitle;
+
+    @Column(name = "task_incharge", nullable = false)
+    private String taskIncharge;
 
     protected Violation() {
     }
 
-    public Violation(String description, String hazardCategory, String hazardCategoryOther,
-                     String severityLevel, String severityLevelOther, String immediateAction) {
-        this.description = description;
-        this.hazardCategory = hazardCategory;
-        this.hazardCategoryOther = hazardCategoryOther;
-        this.severityLevel = severityLevel;
-        this.severityLevelOther = severityLevelOther;
-        this.immediateAction = immediateAction;
+    public Violation(String briefDescription, String observationHazard, String observationHazardOther,
+                     String riskRating, String riskRatingOther, String actionRecommended,
+                     String violatorName, String violatorBadgeNo, String violatorTitle, String taskIncharge) {
+        this.briefDescription = briefDescription;
+        this.observationHazard = observationHazard;
+        this.observationHazardOther = observationHazardOther;
+        this.riskRating = riskRating;
+        this.riskRatingOther = riskRatingOther;
+        this.actionRecommended = actionRecommended;
+        this.violatorName = violatorName;
+        this.violatorBadgeNo = violatorBadgeNo;
+        this.violatorTitle = violatorTitle;
+        this.taskIncharge = taskIncharge;
     }
 
     public Long getId() {
@@ -61,28 +79,44 @@ public class Violation {
         return report;
     }
 
-    public String getDescription() {
-        return description;
+    public String getBriefDescription() {
+        return briefDescription;
     }
 
-    public String getHazardCategory() {
-        return hazardCategory;
+    public String getObservationHazard() {
+        return observationHazard;
     }
 
-    public String getHazardCategoryOther() {
-        return hazardCategoryOther;
+    public String getObservationHazardOther() {
+        return observationHazardOther;
     }
 
-    public String getSeverityLevel() {
-        return severityLevel;
+    public String getRiskRating() {
+        return riskRating;
     }
 
-    public String getSeverityLevelOther() {
-        return severityLevelOther;
+    public String getRiskRatingOther() {
+        return riskRatingOther;
     }
 
-    public String getImmediateAction() {
-        return immediateAction;
+    public String getActionRecommended() {
+        return actionRecommended;
+    }
+
+    public String getViolatorName() {
+        return violatorName;
+    }
+
+    public String getViolatorBadgeNo() {
+        return violatorBadgeNo;
+    }
+
+    public String getViolatorTitle() {
+        return violatorTitle;
+    }
+
+    public String getTaskIncharge() {
+        return taskIncharge;
     }
 
     public void assignTo(SafetyReport report) {
