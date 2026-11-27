@@ -1,9 +1,26 @@
 # Implementation Plan — Current
 
-**Version:** v03 (current; Mahad's line: `plan-v01-Mahad.md`, `plan-v02-Mahad.md`, `plan-v03-Mahad.md`)
-**Date:** 25 November 2026
-**Status:** Slice 6 (Project Management & Closure) — delivered (awaiting Manal's skeleton to run)
-**History:** Supersedes `plan-v02-Mahad.md`; this revision is preserved as `plan-v03-Mahad.md`.
+**Version:** v04 (current; preserved as `plan-v04-Eman.md`; Mahad's line: `plan-v01-Mahad.md`, `plan-v02-Mahad.md`, `plan-v03-Mahad.md`)
+**Date:** 27 November 2026
+**Status:** Slice 3 (Report Creation & Photo Evidence) — implemented in this repository; compiles, 14 unit tests pass, and the app was started against local MySQL with an end-to-end submission verified (27 Nov 2026)
+**History:** Supersedes v03; the pre-change document is preserved as `plan-v04-Eman.md`.
+
+## Changes from v03
+
+1. **Slice 3 implemented here** (`docs/`-only repository had no source): added a minimal
+   runnable Maven/Spring Boot baseline (ADR-08 stack) plus the report-creation flow.
+2. **Team decisions recorded:** photographs are capped at 3 per violation, 10 MB each,
+   JPEG or PNG only; hazard category and severity level lists are team-supplied via
+   configuration and always include an **OTHER** free-text option.
+3. **Open issues resolved by proposal** (no separate human decision requested):
+   FR-44 version snapshot is recorded on the first submission too (AC-37);
+   double submission is blocked by a pessimistic-locked one-time form token (EC-12);
+   A-04 Inspector→Manager designation is one `manager_email` on the user record.
+4. **Status representation:** `submission_status` and nullable `progress_status` are
+   separate columns, keeping Pending Approval distinct from Open/Closed (AGENTS.md §7).
+5. **Conflict still open:** this repo contains no code from Slices 1/2/6 despite their
+   "delivered" status in v03; the new baseline is a minimum skeleton, not a replacement
+   for Manal's/Dashboard code. Reconcile when those sources are available.
 
 ## Changes from v02
 
@@ -62,6 +79,21 @@ at 3 months; Manager reassignment + unique project names.
 paths; they are not compilable/runnable until Manal's skeleton arrives. Auth-dependent
 behavior is stubbed with `TODO(MANAL)`; report-dependent behavior with `TODO(EMAN)`.
 
+**Slice 3 decisions (27 Nov 2026):**
+
+- Photograph evidence: **max 3 per violation, 10 MB per file, JPEG and PNG only**;
+  content type and file signature are both validated server-side (ADR-06 unchanged).
+- Hazard category and severity level lists are **team-supplied** through
+  `hse.form.hazard-categories` / `hse.form.severity-levels`; the form always offers
+  **OTHER** with a required free-text field. No values are hard-coded by the agent.
+- First submission records an immutable version snapshot (FR-44 / AC-37), so Slice 4
+  only needs to add resubmission behavior.
+- Double submission (EC-12) is prevented by a one-time form token with a pessimistic
+  database lock; the second POST reuses the first report instead of creating another.
+- A-04 is implemented as one `manager_email` on the Inspector's user record.
+- No JDK or Maven is installed in this environment: the code is written but **not
+  compiled and tests are not run**. Slices 1/2/6 sources are not present here.
+
 **Slice 6 open issues:**
 
 - **Port for Eman (AGENTS.md §6.8 proposal):** `ProjectReportSummary`
@@ -77,9 +109,9 @@ behavior is stubbed with `TODO(MANAL)`; report-dependent behavior with `TODO(EMA
 
 | Slice | Name | Owner | Scope |
 |---|---|---|---|
-| 1 | Project Foundation & Authentication | Manal | Skeleton, schema baseline, Spring Security login, role + project-scope authorization (ADR-03). |
-| 2 | Dashboard Interface | Mahad | Post-login landing page: role-based report lists (FR-14/15/16), rejection notifications (FR-42). **UI delivered**; data integration pending Slices 1/3/4/5. |
-| 3 | Report Creation & Photo Evidence | Eman | Submit reports (FR-01–FR-05), duplicate check (FR-06), photo upload (FR-07, ADR-06), Pending Approval. |
+| 1 | Project Foundation & Authentication | Manal | Skeleton, schema baseline, Spring Security login, role + project-scope authorization (ADR-03). Minimal baseline added here for Slice 3; reconcile with Manal's version. |
+| 2 | Dashboard Interface | Mahad | Post-login landing page: role-based report lists (FR-14/15/16), rejection notifications (FR-42). **UI delivered** elsewhere; not present in this repo. |
+| 3 | Report Creation & Photo Evidence | Eman | **Implemented here** (unit tested): report form, project eligibility, single-incident + duplicate checks, photograph evidence, atomic submit with Pending Approval, version snapshot. |
 | 4 | Manager Approval & Rejection Workflow | Eman | Approve → Open (FR-09), reject with reason → Rejected + notification (FR-11, FR-42), edit/resubmit + versions (FR-43, FR-44). |
 | 5 | Report Visibility & Corrective Actions | — | Role-scoped report queries backing the dashboard lists (FR-14/15/16), corrective action CRUD while Open (FR-20, FR-21, FR-47). |
 | 6 | Project Management & Closure | **Mahad — IN PROGRESS** | Create project (FR-30), assign/reassign Manager email + unique names (FR-31, EC-36), close with Open warning (FR-32) / confirm auto-close (FR-33) / decline (FR-34), Pending discard warning (FR-35), post-closure read-only (FR-36). |
@@ -125,21 +157,51 @@ reports), EC-10 (second Manager refused), EC-13 (pending stays if Manager never 
 EC-14 (Manager replaced → new Manager views), EC-36 (duplicate project name refused
 with the name in the message).
 
+### Slice 3 implementation notes (v04)
+
+- **Presentation:** `web/report/ReportController`, `ReportForm`, `ViolationForm`,
+  `ReportFormValidator`, `templates/report/new.html`, `templates/report/submitted.html`,
+  `static/js/report-form.js`, `static/css/report-form.css`. The form has one incident
+  header plus repeatable violations; incident mixing is structurally impossible and is
+  still checked for crafted per-violation fields in `SafetyReportService`.
+- **Application:** `application/report/ReportSubmissionUseCase` (single transaction),
+  `SubmissionToken` (EC-12), `application/project/ProjectSelectionQuery`, ports
+  `AuthorizationPort` and `ProjectEligibilityPort`.
+- **Business modules:** `report/` (report, violations, submission state, progress state,
+  duplicate query, version snapshot) and `photo/` (validator, `PhotoStore`, local store,
+  metadata entity). Photograph access will inherit report authorization.
+- **Infrastructure:** JPA repositories, MySQL configuration, `data.sql` (dev profile seed
+  only), local photograph directory (`hse.photos.directory`).
+- **New tables:** `app_user`, `project`, `safety_report`, `safety_violation`,
+  `report_version`, `photograph_evidence`, `submission_token`.
+- **Verification:** JDK 17 + Maven 3.9 were installed and `mvn test` was run on
+  27 Nov 2026: **14 tests passed, 0 failed** (compilation succeeded). Unit tests cover
+  FR-02/05/06, FR-04 refusal cases, and photograph constraints.
+- **Local runtime verification (27 Nov 2026):** portable MySQL 8.4.9 configured at
+  `127.0.0.1:3306/hse_reporting`; the app started with the `dev` profile and served
+  `/login` and `/reports/new`. An Inspector login, report submission with one PNG
+  photograph, first version snapshot, and the duplicate-token refusal were all verified
+  against MySQL (one report, one violation, one photo row, no second report); the test
+  rows were then removed so the dev database starts clean. Automated integration tests
+  for AC-06…AC-10 and EC-12 are still to be added.
+
 ## 7. Current Slice Status
 
 | Slice | Status |
 |---|---|
-| 1 — Foundation & Auth | Owned by Manal — in progress (per team) |
+| 1 — Foundation & Auth | Owned by Manal — in progress (per team). Minimal baseline added here for Slice 3; not a substitute for Manal's implementation. |
 | 2 — Dashboard Interface | **UI delivered** (dashboard.html, fragments/header.html, dashboard.css); data integration pending Slices 1/3/4/5 |
-| 3 — Report Creation & Photos | Owned by Eman — in progress (per team) |
+| 3 — Report Creation & Photos | **Implemented here** (Eman's slice) — compiles; 14 unit tests pass; started against MySQL and end-to-end submission verified (27 Nov 2026) |
 | 4 — Approval & Rejection | Not started (Eman) |
 | 5 — Visibility & Corrective Actions | Not started |
 | 6 — Project Management & Closure | **UI + module + tests delivered (Mahad)** — not runnable/compilable until Manal's skeleton (pom.xml) lands; report side-effects via port stub until Eman's module |
 | 7 — Delete, Restore & Audit | Not started |
 | 8 — Retention Purge | Not started |
 
-**Overall:** Docs complete; Slice 2 UI delivered; Slice 6 implementation underway in
-parallel with Manal's auth (Slice 1) and Eman's reports (Slice 3).
+**Overall:** Docs complete; Slice 2 UI and Slice 6 implementation reported elsewhere
+but absent from this repository. Slice 3 source has been added here together with the
+minimum Spring Boot/MySQL skeleton needed to host it. The code compiles, 14 unit tests
+pass, and the web application was started and exercised against a local MySQL instance.
 
 ---
 

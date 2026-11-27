@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Report submitted — HSE Safety Reporting</title>
+</head>
+<body>
+<h1>Report submitted</h1>
+<p th:if="${duplicateSubmission}">This form had already been submitted; no second report was created.</p>
+<p>Report <strong th:text="${reportId}">—</strong> is now <strong>Pending Approval</strong>.</p>
+<p><a th:href="@{/reports/new}">Create another report</a></p>
+</body>
+</html>

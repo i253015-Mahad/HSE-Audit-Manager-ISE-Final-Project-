@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Sign in — HSE Safety Reporting</title>
+</head>
+<body>
+<h1>Sign in</h1>
+<p class="error" th:if="${param.error}">Email or password is incorrect.</p>
+<p th:if="${param.logout}">You have signed out.</p>
+<form th:action="@{/login}" method="post">
+    <label>Company email <input type="email" name="username" required autofocus></label>
+    <label>Password <input type="password" name="password" required></label>
+    <button type="submit">Sign in</button>
+</form>
+</body>
+</html>

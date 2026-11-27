@@ -1,0 +1,9 @@
+body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 60rem; padding: 0 1rem; }
+fieldset { margin: 1rem 0; padding: 1rem; }
+label { display: block; margin: 0.6rem 0; }
+input, select, textarea { font: inherit; padding: 0.35rem; max-width: 40rem; width: 100%; box-sizing: border-box; }
+textarea { min-height: 4rem; }
+button { font: inherit; padding: 0.4rem 0.8rem; margin: 0.3rem 0.3rem 0.3rem 0; }
+.error, .field-error { color: #a00; }
+.hint { color: #555; font-size: 0.9rem; }
+.actions { margin-top: 1.5rem; }
