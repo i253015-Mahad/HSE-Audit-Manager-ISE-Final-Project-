@@ -93,7 +93,7 @@ class ProjectServiceTest {
     void setUp() {
         store = new InMemoryProjectStore();
         reports = new RecordingReportSummary();
-        service = new ProjectService(store, reports);
+        service = new ProjectService(store, reports, email -> true);
     }
 
     // ------------------------------------------------------------ FR-30 / EC-36
@@ -175,6 +175,60 @@ class ProjectServiceTest {
 
         assertThrows(ProjectValidationException.class,
                 () -> service.reassignManager(p.getId(), "new@example.com"));
+    }
+
+    @Test
+    @DisplayName("FR-45: reassigning the Manager who already holds the project is refused (case-insensitive)")
+    void reassigningSameManagerRefused() {
+        Project p = service.create("Warehouse");
+        service.assignManager(p.getId(), "old@example.com");
+
+        ProjectValidationException e = assertThrows(ProjectValidationException.class,
+                () -> service.reassignManager(p.getId(), "OLD@example.com"));
+
+        assertTrue(e.getMessage().contains("is already the Manager"), e.getMessage());
+        assertEquals("old@example.com", service.get(p.getId()).getManagerEmail(),
+                "nothing may change");
+    }
+
+    // ------------------------------------------------------------ BR-19 (Manager directory)
+
+    @Test
+    @DisplayName("BR-19: assignment refused when the email is not a Manager account")
+    void nonManagerEmailRefusedOnAssign() {
+        Project p = service.create("Warehouse");
+        ProjectService strict = new ProjectService(store, reports, email -> false);
+
+        ProjectValidationException e = assertThrows(ProjectValidationException.class,
+                () -> strict.assignManager(p.getId(), "someone@example.com"));
+
+        assertTrue(e.getMessage().contains("someone@example.com"),
+                "should name the rejected email: " + e.getMessage());
+        assertNull(service.get(p.getId()).getManagerEmail(), "nothing must be persisted");
+    }
+
+    @Test
+    @DisplayName("BR-19: reassignment refused for a non-Manager account - old Manager kept")
+    void nonManagerEmailRefusedOnReassign() {
+        Project p = service.create("Warehouse");
+        service.assignManager(p.getId(), "old@example.com");
+        ProjectService strict = new ProjectService(store, reports, email -> false);
+
+        assertThrows(ProjectValidationException.class,
+                () -> strict.reassignManager(p.getId(), "inspector@example.com"));
+
+        assertEquals("old@example.com", service.get(p.getId()).getManagerEmail());
+    }
+
+    @Test
+    @DisplayName("BR-19: blank email refused before the directory is consulted")
+    void blankEmailRefusedBeforeDirectoryLookup() {
+        Project p = service.create("Warehouse");
+        ProjectService strict = new ProjectService(store, reports,
+                email -> { throw new AssertionError("directory must not be consulted for blank input"); });
+
+        assertThrows(ProjectValidationException.class,
+                () -> strict.assignManager(p.getId(), "   "));
     }
 
     // ------------------------------------------------------------ FR-32...FR-35

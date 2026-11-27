@@ -16,6 +16,7 @@
 
         <p class="alert error" th:if="${param.error}">Invalid email or password.</p>
         <p class="alert info" th:if="${param.logout}">You have been logged out.</p>
+        <p class="alert info" th:if="${showSessionExpired}">Your session has expired. Please sign in again.</p>
 
         <button class="primary" type="submit">Sign in</button>
     </form>

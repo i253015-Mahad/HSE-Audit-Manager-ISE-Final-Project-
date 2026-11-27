@@ -32,10 +32,9 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        // public: sign-in, session-expired and error pages
+                        // public: sign-in and error pages
                         .requestMatchers(
                                 "/login",
-                                "/session-expired",
                                 "/403",
                                 "/css/**",
                                 "/favicon.ico",
@@ -64,14 +63,16 @@ public class SecurityConfig {
                         // Logout invalidates the session server-side but leaves the
                         // JSESSIONID cookie behind; without clearing it the redirect
                         // to /login?logout arrives with a dead session id and
-                        // invalidSessionUrl would hijack it to /session-expired.
-                        // Genuine idle timeouts (FR-08) still reach /session-expired.
+                        // invalidSessionUrl would hijack it to /login?expired.
                         .deleteCookies("JSESSIONID")
                         .permitAll())
                 .sessionManagement(session -> session
                         .sessionFixation(f -> f.migrateSession())
-                        // FR-08: an expired session is reported, never silently reused
-                        .invalidSessionUrl("/session-expired"))
+                        // FR-08: an unknown session id lands on the login page with an
+                        // ?expired flag; CurrentUserModelAdvice shows the notice only
+                        // when the session really timed out — a stale cookie right
+                        // after a server restart gets the plain login page.
+                        .invalidSessionUrl("/login?expired"))
                 .exceptionHandling(ex -> ex
                         // signed-in user without the required role
                         .accessDeniedPage("/403"));

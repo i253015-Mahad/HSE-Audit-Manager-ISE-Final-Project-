@@ -2,6 +2,7 @@ package com.hse.reporting.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -10,7 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpSession;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -80,9 +83,34 @@ class DashboardAccessIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Access denied")));
 
+        // the dedicated /session-expired page was retired: the notice now lives
+        // on the login page, so the old URL is just a protected address again
         mockMvc.perform(get("/session-expired")) // FR-08
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    @Test
+    void serverRestartShowsThePlainLoginPageWithoutAnExpiryNotice() throws Exception {
+        // stale session id but recent activity marker = the site was restarted,
+        // nothing expired, so no "session expired" message may appear
+        Cookie recentActivity = new Cookie("hse_last_seen", Long.toString(System.currentTimeMillis()));
+
+        mockMvc.perform(get("/login?expired").cookie(recentActivity))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Session expired")));
+                .andExpect(content().string(containsString("Sign in")))
+                .andExpect(content().string(not(containsString("session has expired"))));
+    }
+
+    @Test
+    void genuineIdleTimeoutShowsTheExpiryNotice() throws Exception {
+        // last activity older than any plausible session timeout = FR-08 expiry
+        long fourHoursAgo = System.currentTimeMillis() - Duration.ofHours(4).toMillis();
+        Cookie staleActivity = new Cookie("hse_last_seen", Long.toString(fourHoursAgo));
+
+        mockMvc.perform(get("/login?expired").cookie(staleActivity))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("session has expired")));
     }
 
     // ---- real login with seeded accounts (NFR-01) ------------------------

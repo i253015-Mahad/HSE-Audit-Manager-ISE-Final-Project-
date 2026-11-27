@@ -4,22 +4,18 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
 /**
- * Serves the public error pages referenced by SecurityConfig:
+ * Serves the public error page referenced by SecurityConfig:
  * <ul>
- *   <li>{@code /session-expired} — FR-08: an expired session is reported with an
- *       explanation instead of a silent redirect (reached via invalidSessionUrl).</li>
  *   <li>{@code /403} — shown to a signed-in user who lacks the required role
  *       (accessDeniedPage); the interesting reason comes from
  *       {@link AccessDeniedAdvice} when a use case denied the operation.</li>
  * </ul>
+ *
+ * <p>The FR-08 expired-session notice is no longer a separate page: it is shown
+ * on the login page (see {@link CurrentUserModelAdvice}).
  */
 @Controller
 public class ErrorPageController {
-
-    @GetMapping("/session-expired")
-    public String sessionExpired() {
-        return "error/session-expired";
-    }
 
     @GetMapping("/403")
     public String accessDenied() {

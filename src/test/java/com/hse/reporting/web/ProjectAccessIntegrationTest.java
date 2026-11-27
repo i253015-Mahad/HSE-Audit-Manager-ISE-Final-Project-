@@ -166,6 +166,78 @@ class ProjectAccessIntegrationTest {
                 .andExpect(content().string(containsString(name)));
     }
 
+    // ---- BR-19: only an existing Manager account may be assigned ---------
+
+    @Test
+    void assigningAnEmailThatIsNotAManagerIsRejected() throws Exception {
+        String redirectTo = mockMvc.perform(post("/projects/new")
+                        .param("name", uniqueProjectName())
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN")))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+        String projectId = redirectTo.replaceAll("\\D", "");
+
+        // an existing account with the wrong role is refused with a message,
+        // the form is redisplayed and the typed email is kept
+        mockMvc.perform(post("/projects/" + projectId + "/manager")
+                        .param("managerEmail", INSPECTOR_EMAIL)
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN")))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("is not a registered Manager")))
+                .andExpect(content().string(containsString("value=\"" + INSPECTOR_EMAIL + "\"")));
+
+        // an address that is not an account at all is refused the same way
+        mockMvc.perform(post("/projects/" + projectId + "/manager")
+                        .param("managerEmail", "nobody@nowhere.test")
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN")))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("is not a registered Manager")));
+
+        // nothing was written: the project still has no Manager
+        mockMvc.perform(get("/projects/" + projectId + "/manager")
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN"))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("No Manager assigned yet")));
+    }
+
+    @Test
+    void reassigningTheManagerWhoAlreadyHoldsTheProjectIsRejected() throws Exception {
+        String redirectTo = mockMvc.perform(post("/projects/new")
+                        .param("name", uniqueProjectName())
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN")))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+        String projectId = redirectTo.replaceAll("\\D", "");
+
+        mockMvc.perform(post("/projects/" + projectId + "/manager")
+                        .param("managerEmail", MANAGER_EMAIL)
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN")))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection());
+
+        // the same Manager again — refused with a message instead of a fake success
+        mockMvc.perform(post("/projects/" + projectId + "/manager")
+                        .param("managerEmail", MANAGER_EMAIL)
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN")))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("is already the Manager")));
+
+        // unchanged: still shown as the current Manager
+        mockMvc.perform(get("/projects/" + projectId + "/manager")
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN"))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Current: " + MANAGER_EMAIL)));
+    }
+
     // ---- FR-14/15/16 + FR-42: merged dashboard cards ----------------------
 
     @Test
