@@ -22,9 +22,9 @@ INSERT IGNORE INTO users (email, password_hash, role) VALUES
 -- Slice 3 development accounts (password: password). These let the report
 -- creation flow be demonstrated after the slices are merged.
 INSERT IGNORE INTO users (email, password_hash, role) VALUES
-  ('inspector@hse.test', '$2a$12$CCH7lzifDcAvsEcL./Etv.oA/3Jq8llz2qbEE73JvSTqHRyUxfwKS', 'INSPECTOR'),
-  ('manager@hse.test', '$2a$12$CCH7lzifDcAvsEcL./Etv.oA/3Jq8llz2qbEE73JvSTqHRyUxfwKS', 'MANAGER'),
-  ('admin@hse.test', '$2a$12$CCH7lzifDcAvsEcL./Etv.oA/3Jq8llz2qbEE73JvSTqHRyUxfwKS', 'ADMIN');
+  ('inspector@hse.test', '$2a$12$jjMKys.Xklr55pU3UhuXee0rKgXEPoS6.b0yAwQK78sCSNL9EJvQW', 'INSPECTOR'),
+  ('manager@hse.test', '$2a$12$jjMKys.Xklr55pU3UhuXee0rKgXEPoS6.b0yAwQK78sCSNL9EJvQW', 'MANAGER'),
+  ('admin@hse.test', '$2a$12$jjMKys.Xklr55pU3UhuXee0rKgXEPoS6.b0yAwQK78sCSNL9EJvQW', 'ADMIN');
 
 -- Projects: one assigned to the demo Manager, one to the second Manager,
 -- one deliberately unassigned (used to demonstrate project-scope denial).

@@ -9,10 +9,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class CurrentActorService {
 
-    private final UserRepository users;
+    private final InspectorDesignationRepository designations;
 
-    public CurrentActorService(UserRepository users) {
-        this.users = users;
+    public CurrentActorService(InspectorDesignationRepository designations) {
+        this.designations = designations;
     }
 
     public String email() {
@@ -26,9 +26,10 @@ public class CurrentActorService {
         return authentication.getName();
     }
 
-    public AppUser currentUser() {
-        String email = email();
-        return users.findByEmail(email)
-            .orElseThrow(() -> new AccessDeniedException("Your session is no longer valid. Sign in again."));
+    /** FR-04 designation of the acting Inspector; {@code null} when not designated. */
+    public String managerEmail() {
+        return designations.findById(email())
+            .map(InspectorDesignation::getManagerEmail)
+            .orElse(null);
     }
 }

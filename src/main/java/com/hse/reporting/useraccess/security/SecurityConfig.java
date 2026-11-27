@@ -38,6 +38,7 @@ public class SecurityConfig {
                                 "/session-expired",
                                 "/403",
                                 "/css/**",
+                                "/js/**",
                                 "/favicon.ico",
                                 "/error",
                                 "/error/**")
@@ -50,6 +51,8 @@ public class SecurityConfig {
                         // Manager No, Admin Yes for create/assign/close; AC-33).
                         // The handlers re-check the actor as well (ASR-01).
                         .requestMatchers("/projects/**").hasRole(Role.ADMIN.name())
+                        // Report creation is Inspector-only; the use case repeats the check (ASR-01).
+                        .requestMatchers("/reports/**").hasRole(Role.INSPECTOR.name())
                         // deny-by-default: everything else needs a signed-in user
                         .anyRequest().authenticated())
                 .formLogin(form -> form

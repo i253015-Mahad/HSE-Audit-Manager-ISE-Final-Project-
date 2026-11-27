@@ -2,6 +2,24 @@
     const container = document.getElementById('violations');
     if (!container) return;
 
+    function toggleOtherField(row, select) {
+        const kind = select.dataset.otherField;
+        const wrapper = row.querySelector('.other-field[data-other-field="' + kind + '"]');
+        if (!wrapper) return;
+
+        const show = select.value === select.dataset.otherValue;
+        wrapper.classList.toggle('is-visible', show);
+        const input = wrapper.querySelector('input[type="text"]');
+        if (input) {
+            input.disabled = !show;
+            if (!show) input.value = '';
+        }
+    }
+
+    function syncOtherFields(row) {
+        row.querySelectorAll('.choice-with-other').forEach(select => toggleOtherField(row, select));
+    }
+
     function reindex() {
         container.querySelectorAll('.violation-row').forEach((row, index) => {
             row.querySelectorAll('[name]').forEach(element => {
@@ -26,8 +44,11 @@
             }
         });
         container.appendChild(clone);
+        syncOtherFields(clone);
         reindex();
     });
+
+    container.querySelectorAll('.violation-row').forEach(syncOtherFields);
 
     container.addEventListener('click', event => {
         const button = event.target.closest('.remove-violation');
@@ -41,6 +62,10 @@
     });
 
     container.addEventListener('change', event => {
+        if (event.target.matches('.choice-with-other')) {
+            toggleOtherField(event.target.closest('.violation-row'), event.target);
+            return;
+        }
         if (event.target.type !== 'file') return;
         if (event.target.files.length > 3) {
             alert('A violation may have at most 3 photographs.');

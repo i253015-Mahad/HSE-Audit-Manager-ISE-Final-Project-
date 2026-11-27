@@ -45,9 +45,9 @@ The merged application uses `root` with an empty local development password by d
 Override with `HSE_DB_URL` / `HSE_DB_USERNAME` / `HSE_DB_PASSWORD` if you use the
 partners' MySQL instance or their `hse` / `hse-dev-pass` account instead.
 
-On startup Spring runs `schema.sql` (idempotent DDL) and `data.sql` (demo seeds), then
-Hibernate updates the schema for the Slice 3 report/photo tables. Until the shared
-schema baseline includes those tables, `ddl-auto=update` is retained (not `validate`).
+On startup Spring runs `schema.sql` (idempotent DDL, now including the Slice 3
+report/photo and designation tables) and `data.sql` (demo seeds). Hibernate runs with
+`ddl-auto=validate`, so entities are checked against the schema rather than generating DDL.
 
 ### 2. Run the application
 
@@ -75,8 +75,10 @@ Open <http://127.0.0.1:8080/login>.
 2. The Inspector dashboard shows the shared topbar (brand, role badge, email, log out)
    and a **New report** navlink; click it to open `/reports/new`.
 3. On the report form, verify the same topbar/card styling, fill one incident, add a
-   violation, select **OTHER** and type free text, attach a JPEG/PNG (max 3, 10 MB
-   each), and submit.
+   violation, choose from the example hazard/severity dropdown lists, then select
+   **OTHER** to reveal and complete the free-text field. Attach a JPEG/PNG (max 3,
+   10 MB each), and submit. Override the lists with `HSE_HAZARD_CATEGORIES` and
+   `HSE_SEVERITY_LEVELS` if the team supplies different values.
 4. The submitted page confirms the report is **Pending Approval** in the shared
    styling. Reloading/re-submitting the token shows the duplicate-submission warning
    without creating a second report.
@@ -88,6 +90,8 @@ Open <http://127.0.0.1:8080/login>.
 ```powershell
 mvn test          # uses an in-memory H2 database (test profile), no MySQL needed
 ```
+
+The merged suite currently has **70 tests, 0 failures**.
 
 ## Documentation
 

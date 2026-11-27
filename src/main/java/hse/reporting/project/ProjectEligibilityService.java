@@ -1,8 +1,10 @@
 package hse.reporting.project;
 
+import com.hse.reporting.projectmanagement.Project;
+import com.hse.reporting.projectmanagement.ProjectRepository;
 import hse.reporting.application.ports.ProjectEligibilityPort;
-import hse.reporting.user.AppUser;
-import hse.reporting.user.UserRepository;
+import hse.reporting.user.InspectorDesignation;
+import hse.reporting.user.InspectorDesignationRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -12,11 +14,12 @@ import java.util.Optional;
 public class ProjectEligibilityService implements ProjectEligibilityPort {
 
     private final ProjectRepository projects;
-    private final UserRepository users;
+    private final InspectorDesignationRepository designations;
 
-    public ProjectEligibilityService(ProjectRepository projects, UserRepository users) {
+    public ProjectEligibilityService(ProjectRepository projects,
+                                     InspectorDesignationRepository designations) {
         this.projects = projects;
-        this.users = users;
+        this.designations = designations;
     }
 
     @Override
@@ -34,15 +37,16 @@ public class ProjectEligibilityService implements ProjectEligibilityPort {
         if (project.getManagerEmail() == null || project.getManagerEmail().isBlank()) {
             return Eligibility.refuse("The project has no assigned Manager, so a report cannot be submitted.");
         }
-        if (project.isClosed()) {
+        if (!project.isOpen()) {
             return Eligibility.refuse("The project is closed, so a report cannot be submitted against it.");
         }
 
-        AppUser inspector = users.findByEmail(inspectorEmail).orElse(null);
-        if (inspector == null || inspector.getManagerEmail() == null) {
+        InspectorDesignation designation = designations.findById(inspectorEmail).orElse(null);
+        if (designation == null || designation.getManagerEmail() == null
+            || designation.getManagerEmail().isBlank()) {
             return Eligibility.refuse("Your Manager designation is missing; contact your administrator.");
         }
-        if (!project.getManagerEmail().equalsIgnoreCase(inspector.getManagerEmail())) {
+        if (!project.getManagerEmail().equalsIgnoreCase(designation.getManagerEmail())) {
             return Eligibility.refuse("The project is not handled by your Manager.");
         }
         return Eligibility.permit();

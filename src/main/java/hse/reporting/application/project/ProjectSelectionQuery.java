@@ -1,8 +1,7 @@
 package hse.reporting.application.project;
 
-import hse.reporting.project.Project;
-import hse.reporting.project.ProjectRepository;
-import hse.reporting.user.AppUser;
+import com.hse.reporting.projectmanagement.Project;
+import com.hse.reporting.projectmanagement.ProjectRepository;
 import hse.reporting.user.CurrentActorService;
 import org.springframework.stereotype.Service;
 
@@ -21,11 +20,11 @@ public class ProjectSelectionQuery {
     }
 
     public List<ProjectOption> availableForCurrentInspector() {
-        AppUser actor = currentActor.currentUser();
-        if (actor.getManagerEmail() == null || actor.getManagerEmail().isBlank()) {
+        String managerEmail = currentActor.managerEmail();
+        if (managerEmail == null || managerEmail.isBlank()) {
             return List.of();
         }
-        return projects.findByManagerEmailAndClosedFalse(actor.getManagerEmail()).stream()
+        return projects.findByManagerEmailAndState(managerEmail, Project.State.OPEN).stream()
             .map(project -> new ProjectOption(project.getId(), project.getName()))
             .toList();
     }

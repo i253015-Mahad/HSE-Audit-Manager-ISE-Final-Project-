@@ -52,3 +52,87 @@ CREATE TABLE IF NOT EXISTS projects (
     KEY idx_projects_manager_email (manager_email)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
+
+-- ---------------------------------------------------------------------------
+-- Slice 3 additions (Report Creation & Photo Evidence).
+-- The shared `users` and `projects` tables above remain owned by Slice 1/6.
+-- ---------------------------------------------------------------------------
+
+-- FR-04: the Inspector's company Manager designation (not login/role data).
+CREATE TABLE IF NOT EXISTS inspector_designation (
+    inspector_email VARCHAR(255) NOT NULL,
+    manager_email   VARCHAR(255) NULL,
+    PRIMARY KEY (inspector_email)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE IF NOT EXISTS safety_report (
+    id                BIGINT       NOT NULL AUTO_INCREMENT,
+    project_id        BIGINT       NOT NULL,
+    inspector_email   VARCHAR(255) NOT NULL,
+    incident_date     DATE         NOT NULL,
+    incident_time     TIME         NOT NULL,
+    location          VARCHAR(255) NOT NULL,
+    incident_type     VARCHAR(255) NOT NULL,
+    submission_status VARCHAR(255) NOT NULL,
+    progress_status   VARCHAR(255) NULL,
+    deleted           BIT(1)       NOT NULL DEFAULT b'0',
+    submitted_at      DATETIME(6)  NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_safety_report_project (project_id),
+    KEY idx_safety_report_inspector (inspector_email)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE IF NOT EXISTS safety_violation (
+    id                   BIGINT        NOT NULL AUTO_INCREMENT,
+    report_id            BIGINT        NOT NULL,
+    description          VARCHAR(2000) NOT NULL,
+    hazard_category      VARCHAR(255)  NOT NULL,
+    hazard_category_other VARCHAR(255) NULL,
+    severity_level       VARCHAR(255)  NOT NULL,
+    severity_level_other VARCHAR(255)  NULL,
+    immediate_action     VARCHAR(2000) NULL,
+    PRIMARY KEY (id),
+    KEY idx_violation_report (report_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE IF NOT EXISTS report_version (
+    id              BIGINT       NOT NULL AUTO_INCREMENT,
+    report_id       BIGINT       NOT NULL,
+    version_number  INT          NOT NULL,
+    submitted_at    DATETIME(6)  NOT NULL,
+    project_id      BIGINT       NOT NULL,
+    inspector_email VARCHAR(255) NOT NULL,
+    incident_date   DATE         NOT NULL,
+    incident_time   TIME         NOT NULL,
+    location        VARCHAR(255) NOT NULL,
+    incident_type   VARCHAR(255) NOT NULL,
+    violations_json TEXT         NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_version_report (report_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE IF NOT EXISTS photograph_evidence (
+    id                BIGINT       NOT NULL AUTO_INCREMENT,
+    violation_id      BIGINT       NOT NULL,
+    stored_file_name  VARCHAR(255) NOT NULL,
+    original_file_name VARCHAR(255) NULL,
+    content_type      VARCHAR(255) NOT NULL,
+    size_bytes        BIGINT       NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_photo_file (stored_file_name),
+    KEY idx_photo_violation (violation_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+-- EC-12: one-time submission token; a used token keeps its first report id.
+CREATE TABLE IF NOT EXISTS submission_token (
+    token      VARCHAR(255) NOT NULL,
+    report_id  BIGINT       NULL,
+    created_at DATETIME(6)  NOT NULL,
+    PRIMARY KEY (token)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;

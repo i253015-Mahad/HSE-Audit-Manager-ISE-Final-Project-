@@ -1,9 +1,24 @@
 # Implementation Plan — Current
 
-**Version:** v05 (current; Eman's line: `plan-v04-Eman.md`; Mahad's line: `plan-v01-Mahad.md` … `plan-v03-Mahad.md`; Manal's line: `plan-v02-Manal.md`)
+**Version:** v06 (current; author: Eman Ishaq; supersedes the v05 merged-integration revision)
+**Author:** Eman Ishaq
 **Date:** 27 November 2026
-**Status:** Slices 1, 2, 3 and 6 are now merged into one runnable application on branch `eman`; Slice 3 pages have been aligned to Slice 1's shared theme and layout fragments.
-**History:** Supersedes v04 (both authors). The pre-merge Eman revision is preserved as `plan-v04-Eman.md`.
+**Status:** Slices 1, 2, 3 and 6 are merged into one runnable application on branch `eman`; Slice 3 pages use the shared theme and layout fragments. The report form now ships example hazard/severity dropdown lists and reveals the OTHER free-text inputs only after OTHER is selected.
+**History:** Supersedes v05 (merge/integration and UI consistency). The pre-merge Eman revision is preserved as `plan-v04-Eman.md`; v05 remains in git history.
+
+## Changes from v05 — report-form choices and evidence
+
+1. **Hazard category and severity level dropdowns** now include example team-style
+   values from `application.yml` (`Working at height`, `Slip/trip/fall`,
+   `Manual handling`, `Low`, `Medium`, `High`, etc.) while remaining overridable via
+   `HSE_HAZARD_CATEGORIES` / `HSE_SEVERITY_LEVELS`.
+2. **Conditional OTHER inputs:** the free-text boxes are hidden, disabled and cleared
+   until **OTHER** is chosen; selecting a listed value hides them again. The behavior
+   also applies to cloned violation rows.
+3. **Evidence:** `Events Log/Eman Ishaq workflow evidence log.md` records the clean
+   build, browser flow and database checks for this revision.
+4. **Verification:** `mvn clean test` passes 70/70, and the submitted-page flow was
+   rechecked with a listed hazard/severity pair (no OTHER text required).
 
 ## Changes from v04 — integration of Eman's Slice 3
 
@@ -26,10 +41,16 @@
    each, JPEG/PNG only; hazard/severity lists are configuration-driven and always
    include **OTHER**; FR-44 snapshots on first submission; EC-12 double submission
    blocked with a pessimistic-locked one-time token.
-6. **Remaining integration debt (not in this UI pass):** dashboard `reports` /
-   `notifications` model attributes are still unsupplied (Slices 3–5 wiring), and
-   `ddl-auto=update` is retained until the shared schema baseline includes the
-   Slice 3 tables.
+6. **Schema:** `schema.sql` now includes the Slice 3 report/photo/designation tables,
+   so Hibernate stays on `ddl-auto=validate` (no runtime DDL generation). Slices 3
+   reads Project Management's owned `projects` entity/repository instead of defining
+   a second `Project` mapping.
+7. **Verification:** 70/70 tests pass (`mvn test`), and the browser flow was checked:
+   email login → Inspector dashboard → New report → photo submission → submitted
+   page → duplicate-warning replay. Admin dashboards and `/projects` still render
+   with the same shared theme.
+8. **Remaining integration debt (not in this UI pass):** dashboard `reports` /
+   `notifications` model attributes are still unsupplied (Slices 3–5 wiring).
 
 ## Changes from v02
 
@@ -93,15 +114,19 @@ behavior is stubbed with `TODO(MANAL)`; report-dependent behavior with `TODO(EMA
 - Photograph evidence: **max 3 per violation, 10 MB per file, JPEG and PNG only**;
   content type and file signature are both validated server-side (ADR-06 unchanged).
 - Hazard category and severity level lists are **team-supplied** through
-  `hse.form.hazard-categories` / `hse.form.severity-levels`; the form always offers
-  **OTHER** with a required free-text field. No values are hard-coded by the agent.
+  `hse.form.hazard-categories` / `hse.form.severity-levels`; `application.yml` ships
+  example values that can be replaced via `HSE_HAZARD_CATEGORIES` /
+  `HSE_SEVERITY_LEVELS` without code changes. The form always appends **OTHER** and
+  shows its free-text input only after OTHER is selected. No values are hard-coded
+  in Java classes.
 - First submission records an immutable version snapshot (FR-44 / AC-37), so Slice 4
   only needs to add resubmission behavior.
 - Double submission (EC-12) is prevented by a one-time form token with a pessimistic
   database lock; the second POST reuses the first report instead of creating another.
 - A-04 is implemented as one `manager_email` on the Inspector's user record.
-- No JDK or Maven is installed in this environment: the code is written but **not
-  compiled and tests are not run**. Slices 1/2/6 sources are not present here.
+- A portable JDK 17 / Maven 3.9.9 toolchain is used for local verification;
+  `mvn clean test` passes 70/70. Slices 1/2/6 sources are now present in the merged
+  tree.
 
 **Slice 6 open issues:**
 
