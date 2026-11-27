@@ -1,4 +1,4 @@
-package hse.reporting.project;
+package com.hse.reporting.projectmanagement;
 
 /**
  * Project-level validation failure (blank name, operation on a closed project,

@@ -1,12 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Projects · HSE Safety Reporting System</title>
-    <link rel="stylesheet" th:href="@{/css/site.css}" href="../../static/css/site.css">
-    <link rel="stylesheet" th:href="@{/css/projects.css}" href="../../static/css/projects.css">
-</head>
+<head th:replace="~{fragments :: headWithSite('Projects')}"></head>
 <body>
 
 <!--
@@ -16,37 +10,21 @@
 
   MODEL CONTRACT for ProjectController.list():
     projects   : List<Project> — all projects (Admin scope, PRD §4)
-    currentUser: String        — display name (TODO(MANAL): session)
-    currentRole: String        — role chip     (TODO(MANAL): session)
+    currentUserEmail / currentUserRole : identity for the shared top bar,
+                                         published by CurrentUserModelAdvice
     flashMessage : String      — optional one-off confirmation (flash)
 
     Project fields used here : id, name, managerEmail (nullable until
                                assigned), state (OPEN|CLOSED), closedAt
 
-  TODO(MANAL / Slice 1 — auth): routes are Admin-only (create/assign/close =
-      Admin Yes, Inspector/Manager No — PRD §4, AC-33). Enforce server-side.
+  AUTH: /projects/** is Admin-only (PRD §4, AC-33) — enforced twice:
+      SecurityConfig URL rule + ProjectController.requireAdmin().
   TODO(EMAN / Slices 3–4): report counts appear on the close page via the
       ProjectReportSummary port (FR-32 / FR-35 warnings).
   ============================================================================
 -->
 
-<!-- Shared top navigation (static fallback below mirrors fragments/header.html) -->
-<header th:replace="~{fragments/header :: topbar}">
-    <div class="topbar">
-        <div class="topbar-inner">
-            <a class="brand" href="/dashboard">HSE Safety Reporting</a>
-            <nav class="main-nav" aria-label="Primary">
-                <a class="nav-link" href="/dashboard">Dashboard</a>
-                <a class="nav-link active" href="/projects" aria-current="page">Projects</a>
-            </nav>
-            <div class="user-area">
-                <span class="user-name">Signed-in user</span>
-                <span class="user-role-chip">Role</span>
-                <a class="btn-logout" href="/logout">Log out</a>
-            </div>
-        </div>
-    </div>
-</header>
+<header th:replace="~{fragments :: topbar}"></header>
 
 <main class="page">
 
@@ -55,7 +33,7 @@
             <h1>Projects</h1>
             <p class="subtitle">Create projects, assign one Manager each, and close projects when work is done.</p>
         </div>
-        <!-- TODO(MANAL): show only to Admin (server-side) -->
+        <!-- Display-only: the route itself is Admin-only server-side (AC-33) -->
         <a class="btn btn-primary" href="/projects/new" th:href="@{/projects/new}">+ New project</a>
     </section>
 
@@ -91,7 +69,7 @@
                     </td>
                     <td th:text="${p.closedAt != null ? p.closedAt : '—'}">—</td>
                     <td class="cell-action">
-                        <!-- TODO(MANAL): Admin-only actions -->
+                        <!-- Actions are Admin-only server-side (requireAdmin) -->
                         <a href="#" th:href="@{/projects/{id}/manager(id=${p.id})}"
                            th:if="${p.isOpen()}">Assign / reassign Manager</a>
                         <a href="#" th:href="@{/projects/{id}/close(id=${p.id})}"

@@ -72,6 +72,8 @@ behavior is stubbed with `TODO(MANAL)`; report-dependent behavior with `TODO(EMA
   delivery (AGENTS.md §8; permission matrix §4: create/assign/close = Admin Yes only).
 - **Package:** `hse.reporting.project` is a temporary package pending alignment with
   Manal's skeleton layout (flag if different).
+  *Resolved in v04: now `com.hse.reporting.projectmanagement` (single flat package under
+  Manal's `com.hse.reporting` scan root) — see `plan.md`, Changes from v03.*
 
 ## 3. Vertical Slices
 

@@ -1,4 +1,4 @@
-package hse.reporting.project;
+package com.hse.reporting.projectmanagement;
 
 /**
  * Application-layer port through which the Project Management module asks the

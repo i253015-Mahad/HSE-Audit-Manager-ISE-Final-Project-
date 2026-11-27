@@ -1,4 +1,4 @@
-package hse.reporting.project;
+package com.hse.reporting.projectmanagement;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

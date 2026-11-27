@@ -1,4 +1,4 @@
-package hse.reporting.project;
+package com.hse.reporting.projectmanagement;
 
 /**
  * EC-36 — a project with the same name already exists; the message names the

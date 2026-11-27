@@ -9,7 +9,7 @@ import java.util.List;
  * project-access information to other modules").
  *
  * <p>Callers receive this capability through this interface only; the underlying
- * tables (projects, project_manager) are private to Project Management
+ * tables (projects) are private to Project Management
  * (AGENTS.md section 6). Writes (create project, assign/reassign Manager, close
  * project) belong to Slice 5 and are not exposed here.
  */

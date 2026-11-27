@@ -4,8 +4,8 @@
 --
 -- Ownership:
 --   users                -> User and Access Management
---   projects             -> Project Management
---   project_manager      -> Project Management (Manager project assignment, ADR-03)
+--   projects             -> Project Management (incl. manager_email: the single
+--                           Manager assignment, ADR-03 / FR-31)
 --
 -- Executed by Spring Boot on every start (spring.sql.init.mode=always);
 -- must stay idempotent. JPA validates entities against this file (ddl-auto=validate).
@@ -28,31 +28,27 @@ CREATE TABLE IF NOT EXISTS users (
   DEFAULT CHARSET = utf8mb4;
 
 -- ---------------------------------------------------------------------------
--- Projects (Project Management). Full lifecycle is implemented in Slice 5;
--- the baseline table exists now because Manager project scope (ADR-03)
--- must be enforceable from Slice 1.
+-- Projects (Project Management).
+--
+-- manager_email holds the ONE Manager assigned to the project (FR-31, EC-10):
+-- NULL until an Admin assigns one; matched against users.email. Exactly one
+-- Manager at a time is enforced by the single column — a second Manager can
+-- only be set by overwriting the first (reassignment, FR-45).
+--
+-- state   OPEN | CLOSED  — Admin closes a project (FR-32…FR-35).
+-- closed_at — exact closure timestamp; starts the 3-month retention window
+--             for purge-all (NFR-03, FR-39).
+-- Full lifecycle (reports on close) is implemented in Slice 5; the columns
+-- exist now because JPA validates the Project entity against this file.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS projects (
-    id   BIGINT       NOT NULL AUTO_INCREMENT,
-    name VARCHAR(255) NOT NULL,
+    id            BIGINT       NOT NULL AUTO_INCREMENT,
+    name          VARCHAR(200) NOT NULL,
+    manager_email VARCHAR(200) NULL,
+    state         VARCHAR(16)  NOT NULL DEFAULT 'OPEN',
+    closed_at     DATETIME     NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY uq_projects_name (name)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4;
-
--- ---------------------------------------------------------------------------
--- Manager -> project assignment.
--- Primary key on project_id enforces at most one Manager per project at the
--- database level (every project has exactly one Manager; the application
--- ensures a Manager is assigned when a project is created, Slice 5).
--- The manager's email is matched against users.email.
--- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS project_manager (
-    project_id    BIGINT       NOT NULL,
-    manager_email VARCHAR(255) NOT NULL,
-    PRIMARY KEY (project_id),
-    KEY idx_project_manager_email (manager_email),
-    CONSTRAINT fk_project_manager_project
-        FOREIGN KEY (project_id) REFERENCES projects (id)
+    UNIQUE KEY uq_projects_name (name),
+    KEY idx_projects_manager_email (manager_email)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;

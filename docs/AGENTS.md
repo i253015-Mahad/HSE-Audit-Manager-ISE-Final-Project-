@@ -240,6 +240,7 @@ Before creating or moving files:
 5. Keep the change within the smallest responsible module/layer boundary.
 
 When coding:
+- Write code in as few lines as possible: be concise, efficient, ideal, and optimal — the minimal complete solution with no redundancy, no boilerplate that adds nothing, and no speculative generality.
 - Use the project's existing naming and formatting conventions.
 - Use agreed domain terms consistently.
 - Keep functions, classes, and modules focused on their responsibilities.
@@ -351,6 +352,7 @@ Summarize:
 
 1. **Explicit Consent Required:** Never execute `git commit`, `git push`, or alter repository/remote history without asking for and receiving explicit, action-specific approval from the human developer.
 2. **Pre-commit Summary:** Present a clear breakdown of uncommitted changes and their rationale before asking for permission to commit.
+3. **No Unrequested Branching:** Never create, switch, or delete branches on your own initiative. Work directly on the current branch the human developer is using (the one checked out when the task starts) unless they explicitly ask for a branch. Creating an isolated branch for analysis or experiments is not implied by the task.
 
 ### 15.2 Context Window & Token Efficiency
 

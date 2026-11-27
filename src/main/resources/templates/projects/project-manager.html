@@ -1,12 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manager · HSE Safety Reporting System</title>
-    <link rel="stylesheet" th:href="@{/css/site.css}" href="../../static/css/site.css">
-    <link rel="stylesheet" th:href="@{/css/projects.css}" href="../../static/css/projects.css">
-</head>
+<head th:replace="~{fragments :: headWithSite('Manager')}"></head>
 <body>
 
 <!--
@@ -14,28 +8,14 @@
   refused; BR-15 reassignment transfers pending approvals + report visibility).
   MODEL: project (id, name, managerEmail, state), assigning (boolean —
          true = first assignment, false = reassignment), optional `error`,
-         optional `managerEmail` (re-filled input after failed submit).
-  TODO(MANAL): Admin-only route (PRD §4, AC-33).
+         optional `managerEmail` (re-filled input after failed submit);
+         identity for the top bar comes from CurrentUserModelAdvice.
+  AUTH: Admin-only route (PRD §4, AC-33) — SecurityConfig + requireAdmin().
   TODO(EMAN): pending-approval transfer happens in report visibility queries
               when the Manager changes — project module only stores the email.
 -->
 
-<header th:replace="~{fragments/header :: topbar}">
-    <div class="topbar">
-        <div class="topbar-inner">
-            <a class="brand" href="/dashboard">HSE Safety Reporting</a>
-            <nav class="main-nav" aria-label="Primary">
-                <a class="nav-link" href="/dashboard">Dashboard</a>
-                <a class="nav-link active" href="/projects" aria-current="page">Projects</a>
-            </nav>
-            <div class="user-area">
-                <span class="user-name">Signed-in user</span>
-                <span class="user-role-chip">Role</span>
-                <a class="btn-logout" href="/logout">Log out</a>
-            </div>
-        </div>
-    </div>
-</header>
+<header th:replace="~{fragments :: topbar}"></header>
 
 <main class="page page-narrow">
 

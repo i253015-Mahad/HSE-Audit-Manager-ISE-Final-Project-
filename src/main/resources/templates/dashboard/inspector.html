@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments :: head('Inspector')}"></head>
+<head th:replace="~{fragments :: headWithSite('Inspector')}"></head>
 <body>
 
 <header th:replace="~{fragments :: topbar}"></header>
@@ -9,11 +9,16 @@
     <h1>Inspector</h1>
     <p class="lead">You are signed in as a Safety Team Inspector.</p>
 
-    <section class="card">
-        <h2>My safety reports</h2>
-        <p>Report submission becomes available here once report creation is delivered.</p>
-        <p class="note">You can only ever see reports you submitted yourself.</p>
-    </section>
+    <!-- FR-42 — rejection notifications for the owning Inspector only -->
+    <th:block th:replace="~{fragments :: notificationsCard}"></th:block>
+
+    <!-- FR-14 — own reports only (pending, rejected with reason, Open, Closed) -->
+    <th:block th:replace="~{fragments :: reportsCard}"></th:block>
+
+    <p class="note">
+        Report submission becomes available here once report creation is delivered.
+        You can only ever see reports you submitted yourself.
+    </p>
 </main>
 
 </body>

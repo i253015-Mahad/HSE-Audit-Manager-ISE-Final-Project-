@@ -1,12 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Close project · HSE Safety Reporting System</title>
-    <link rel="stylesheet" th:href="@{/css/site.css}" href="../../static/css/site.css">
-    <link rel="stylesheet" th:href="@{/css/projects.css}" href="../../static/css/projects.css">
-</head>
+<head th:replace="~{fragments :: headWithSite('Close project')}"></head>
 <body>
 
 <!--
@@ -19,26 +13,12 @@
   MODEL: project, openCount (long), pendingCount (long).
   Counts come from the ProjectReportSummary port — TODO(EMAN): real counts
   until the report module lands (interim default returns 0).
+  Identity for the top bar comes from CurrentUserModelAdvice.
 
-  TODO(MANAL): Admin-only route (PRD §4, AC-33).
+  AUTH: Admin-only route (PRD §4, AC-33) — SecurityConfig + requireAdmin().
 -->
 
-<header th:replace="~{fragments/header :: topbar}">
-    <div class="topbar">
-        <div class="topbar-inner">
-            <a class="brand" href="/dashboard">HSE Safety Reporting</a>
-            <nav class="main-nav" aria-label="Primary">
-                <a class="nav-link" href="/dashboard">Dashboard</a>
-                <a class="nav-link active" href="/projects" aria-current="page">Projects</a>
-            </nav>
-            <div class="user-area">
-                <span class="user-name">Signed-in user</span>
-                <span class="user-role-chip">Role</span>
-                <a class="btn-logout" href="/logout">Log out</a>
-            </div>
-        </div>
-    </div>
-</header>
+<header th:replace="~{fragments :: topbar}"></header>
 
 <main class="page page-narrow">
 

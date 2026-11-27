@@ -91,6 +91,14 @@ a { color: var(--brand); }
     margin-top: 1rem;
 }
 
+/* A card that carries its own header (site.css .card-header: title row with
+   divider) must stay flush so the header and the table below fill the card.
+   Keeps site.css page cards looking the same under the Slice 1 .card rule. */
+.card:has(> .card-header) {
+    padding: 0;
+    overflow: hidden;
+}
+
 .lead { color: var(--muted); }
 .note { color: var(--muted); font-size: 0.9rem; }
 .muted { color: var(--muted); margin-left: 0.5rem; font-size: 0.9rem; }

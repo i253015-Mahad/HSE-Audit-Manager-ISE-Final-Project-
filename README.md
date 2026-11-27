@@ -29,25 +29,37 @@ projects, with role-based workflows for Inspectors, Managers, and Admin/HSE Engi
 
 ## Build and Run
 
-Requirements: JDK 21, Maven, MySQL 8 (`hse_reporting` database).
+Requirements: JDK 21 + Maven (installed under `D:\Mahad\Tools` on this machine).
+MySQL 8 is needed **only to run the app**; tests run against an in-memory H2 database
+and need neither.
 
 ```powershell
 # Environment (this machine's install locations)
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.13.10002-hotspot"
-$maven = "C:\Users\Manal\tools\apache-maven-3.9.9\bin\mvn"
+$env:JAVA_HOME = 'D:\Mahad\Tools\jdk-21'   # Temurin JDK 21.0.13.1+2
+$env:PATH      = "D:\Mahad\Tools\jdk-21\bin;D:\Mahad\Tools\maven\bin;$env:PATH"   # Maven 3.9.16
 ```
 
-### 1. Start MySQL (portable install)
+### 1. Database (only for `mvn spring-boot:run`)
+
+MySQL 8.4 LTS runs **portably from this machine** — binaries and data both under
+`D:\Mahad\Tools`, nothing installed system-wide:
+
+| Item | Location |
+|---|---|
+| Server binaries | `D:\Mahad\Tools\mysql-8.4.13.1-winx64\` |
+| Data directory | `D:\Mahad\Tools\mysql-data\` (database `hse_reporting`) |
+| Start helper | `D:\Mahad\Tools\start-mysql.ps1` |
 
 ```powershell
-$base = "$env:USERPROFILE\tools\mysql-8.4.13.1-winx64"
-Start-Process -FilePath "$base\bin\mysqld.exe" `
-  -ArgumentList "--no-defaults","--basedir=$base","--datadir=$env:USERPROFILE\tools\mysql-data","--port=3306" `
-  -WindowStyle Hidden
-& "$base\bin\mysqladmin.exe" --no-defaults -u root ping   # expect: mysqld is alive
+# start (initializes the data dir automatically on first run on a new machine)
+powershell -ExecutionPolicy Bypass -File D:\Mahad\Tools\start-mysql.ps1
+
+# stop when finished
+& 'D:\Mahad\Tools\mysql-8.4.13.1-winx64\bin\mysqladmin.exe' -u root shutdown
 ```
 
-One-time database/user setup (already done):
+One-time database/user setup (already done on this machine; repeat elsewhere after the
+first `start-mysql.ps1` run):
 
 ```sql
 CREATE DATABASE hse_reporting CHARACTER SET utf8mb4;
@@ -63,7 +75,7 @@ Connection settings live in `src/main/resources/application.yml` (override with
 ### 2. Run the application
 
 ```powershell
-& $maven spring-boot:run
+mvn spring-boot:run
 ```
 
 Open <http://localhost:8080/login>.
@@ -81,7 +93,7 @@ Open <http://localhost:8080/login>.
 ### 4. Tests
 
 ```powershell
-& $maven test          # uses an in-memory H2 database (test profile), no MySQL needed
+mvn test          # uses an in-memory H2 database (test profile), no MySQL needed
 ```
 
 ## Documentation
@@ -92,7 +104,7 @@ Open <http://localhost:8080/login>.
 | [`docs/architecture.md`](docs/architecture.md) | Working architecture baseline: layers, modules, data ownership, technology stack. |
 | [`docs/AGENTS.md`](docs/AGENTS.md) | Operating instructions for AI coding agents working in this repository. |
 | [`docs/HSE-Architecture-ADRs/`](docs/HSE-Architecture-ADRs/) | Architecture Decision Records (ADR-01…ADR-06, ADR-08). |
-| [`docs/plans/`](docs/plans/) | Living implementation plan (`plan.md`) with preserved per-author version history (`plan-v01-Mahad.md`, `plan-v02-Mahad.md`, … — each teammate versions under their own name). |
+| [`docs/plans/`](docs/plans/) | Living implementation plan (`plan.md`) with preserved per-author version history (`plan-v01-Mahad.md` … `plan-v03-Mahad.md`, `plan-v02-Manal.md` — each teammate versions under their own name). |
 
 ## Working with AI Agents
 

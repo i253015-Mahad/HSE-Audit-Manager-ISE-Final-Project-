@@ -1,4 +1,4 @@
-package hse.reporting.project;
+package com.hse.reporting.projectmanagement;
 
 import java.util.List;
 import java.util.Optional;

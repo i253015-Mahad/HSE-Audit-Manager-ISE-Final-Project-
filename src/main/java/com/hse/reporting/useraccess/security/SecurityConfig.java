@@ -46,6 +46,10 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**").hasRole(Role.ADMIN.name())
                         .requestMatchers("/manager/**").hasRole(Role.MANAGER.name())
                         .requestMatchers("/inspector/**").hasRole(Role.INSPECTOR.name())
+                        // Project Management: Admin only (PRD section 4 — Inspector No,
+                        // Manager No, Admin Yes for create/assign/close; AC-33).
+                        // The handlers re-check the actor as well (ASR-01).
+                        .requestMatchers("/projects/**").hasRole(Role.ADMIN.name())
                         // deny-by-default: everything else needs a signed-in user
                         .anyRequest().authenticated())
                 .formLogin(form -> form
@@ -57,6 +61,12 @@ public class SecurityConfig {
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login?logout")
+                        // Logout invalidates the session server-side but leaves the
+                        // JSESSIONID cookie behind; without clearing it the redirect
+                        // to /login?logout arrives with a dead session id and
+                        // invalidSessionUrl would hijack it to /session-expired.
+                        // Genuine idle timeouts (FR-08) still reach /session-expired.
+                        .deleteCookies("JSESSIONID")
                         .permitAll())
                 .sessionManagement(session -> session
                         .sessionFixation(f -> f.migrateSession())

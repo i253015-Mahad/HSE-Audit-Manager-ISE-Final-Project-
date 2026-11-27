@@ -8,6 +8,10 @@
 -- INSERT IGNORE keeps startup idempotent: existing rows are never modified.
 -- ============================================================================
 
+-- TODO(Manal): DEMO ONLY — these accounts exist so the login slice can be
+-- demonstrated end-to-end; they are not office accounts and must not ship
+-- to a real deployment. Remove (or replace with provisioned rows) before go-live.
+
 INSERT IGNORE INTO users (email, password_hash, role) VALUES
   ('manal12cf@gmail.com', '$2a$10$TaSHkhCQXUiofSNBnBdKweYgXl.HNlzXFuvpiFEhLoDoT76atl1JO', 'ADMIN'),
   ('mahadwaqas28@gmail.com', '$2a$10$TaSHkhCQXUiofSNBnBdKweYgXl.HNlzXFuvpiFEhLoDoT76atl1JO', 'MANAGER'),
@@ -17,13 +21,8 @@ INSERT IGNORE INTO users (email, password_hash, role) VALUES
 
 -- Projects: one assigned to the demo Manager, one to the second Manager,
 -- one deliberately unassigned (used to demonstrate project-scope denial).
-INSERT IGNORE INTO projects (name) VALUES
-  ('Head Office Fit-Out'),
-  ('Warehouse Extension'),
-  ('Site A Laboratory');
-
-INSERT IGNORE INTO project_manager (project_id, manager_email)
-SELECT p.id, 'mahadwaqas28@gmail.com' FROM projects p WHERE p.name = 'Head Office Fit-Out';
-
-INSERT IGNORE INTO project_manager (project_id, manager_email)
-SELECT p.id, 'extra.manager@hse.local' FROM projects p WHERE p.name = 'Warehouse Extension';
+-- The ONE Manager per project lives in projects.manager_email (FR-31).
+INSERT IGNORE INTO projects (name, manager_email) VALUES
+  ('Head Office Fit-Out', 'mahadwaqas28@gmail.com'),
+  ('Warehouse Extension', 'extra.manager@hse.local'),
+  ('Site A Laboratory',   NULL);

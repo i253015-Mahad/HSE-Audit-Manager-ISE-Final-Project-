@@ -27,7 +27,7 @@ public class JdbcProjectAccessQueries implements ProjectAccessQueries {
     @Override
     public boolean isAssignedManager(String managerEmail, long projectId) {
         Integer count = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM project_manager WHERE manager_email = ? AND project_id = ?",
+                "SELECT COUNT(*) FROM projects WHERE manager_email = ? AND id = ?",
                 Integer.class,
                 managerEmail,
                 projectId);
@@ -39,8 +39,7 @@ public class JdbcProjectAccessQueries implements ProjectAccessQueries {
         return jdbc.query(
                 "SELECT " + PROJECT_COLUMNS
                         + " FROM projects p"
-                        + " JOIN project_manager pm ON pm.project_id = p.id"
-                        + " WHERE pm.manager_email = ?"
+                        + " WHERE p.manager_email = ?"
                         + " ORDER BY p.name",
                 (rs, rowNum) -> new ProjectSummary(rs.getLong("id"), rs.getString("name")),
                 managerEmail);

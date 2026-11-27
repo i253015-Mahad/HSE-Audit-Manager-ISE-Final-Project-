@@ -1,4 +1,4 @@
-package hse.reporting.project;
+package com.hse.reporting.projectmanagement;
 
 /**
  * EC-10 — a project may have only ONE Manager at a time; adding a second

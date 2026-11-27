@@ -1,4 +1,4 @@
-package hse.reporting.project;
+package com.hse.reporting.projectmanagement;
 
 import java.time.LocalDateTime;
 import java.util.List;

@@ -1,4 +1,4 @@
-package hse.reporting.project;
+package com.hse.reporting.projectmanagement;
 
 /**
  * Narrow persistence port used by {@link ProjectService}.

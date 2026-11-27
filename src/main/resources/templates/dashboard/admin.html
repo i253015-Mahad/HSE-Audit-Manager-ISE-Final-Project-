@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments :: head('Admin')}"></head>
+<head th:replace="~{fragments :: headWithSite('Admin')}"></head>
 <body>
 
 <header th:replace="~{fragments :: topbar}"></header>
@@ -8,6 +8,9 @@
 <main class="container">
     <h1>HSE Engineer / Admin</h1>
     <p class="lead">Cross-project oversight across all projects.</p>
+
+    <!-- FR-16 — open and closed reports across ALL projects (never pending/rejected) -->
+    <th:block th:replace="~{fragments :: reportsCard}"></th:block>
 
     <section class="card">
         <h2>All projects</h2>

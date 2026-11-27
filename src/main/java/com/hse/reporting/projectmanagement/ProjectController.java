@@ -1,5 +1,8 @@
-package hse.reporting.project;
+package com.hse.reporting.projectmanagement;
 
+import com.hse.reporting.application.ActorContext;
+import com.hse.reporting.useraccess.access.AuthorizationService;
+import com.hse.reporting.useraccess.domain.Role;
 import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -24,37 +27,51 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  *   <li>POST /projects/{id}/close    — confirm (FR-33/35) or decline (FR-34)</li>
  * </ul>
  *
- * <p>TODO(MANAL / Slice 1 — auth): every route here is Admin-only per the
- * permission matrix (PRD §4: Inspector No, Manager No, Admin Yes — create,
- * assign/reassign, close). Enforce server-side with Spring Security before
- * delivery; frontend hiding alone is never the enforcement (AGENTS.md §8).
- * Direct URL access attempts must be denied (AC-33).
+ * <p>Every route is Admin-only per the permission matrix (PRD section 4:
+ * Inspector No, Manager No, Admin Yes — create, assign/reassign, close).
+ * Enforcement is layered (ASR-01, AGENTS.md section 8):
+ * <ol>
+ *   <li>{@code SecurityConfig} guards the whole {@code /projects/**} area by URL,</li>
+ *   <li>{@link #requireAdmin()} re-checks the actor inside every handler — the
+ *       authoritative decision, so hiding UI controls is never the only gate
+ *       (AC-33: direct URL access is denied).</li>
+ * </ol>
+ * Identity shown in the shared top bar comes from {@code CurrentUserModelAdvice}
+ * ({@code currentUserEmail} / {@code currentUserRole}); this controller never
+ * decides identity for layout purposes.
  */
 @Controller
 @RequestMapping("/projects")
 public class ProjectController {
 
     private final ProjectService projects;
+    private final ActorContext actorContext;
+    private final AuthorizationService authorization;
 
-    public ProjectController(ProjectService projects) {
+    public ProjectController(ProjectService projects,
+                            ActorContext actorContext,
+                            AuthorizationService authorization) {
         this.projects = projects;
+        this.actorContext = actorContext;
+        this.authorization = authorization;
+    }
+
+    /** Authoritative per-operation access check: Admin only (FR-30…FR-36, PRD section 4). */
+    private void requireAdmin() {
+        authorization.requireRole(actorContext.currentActor(), Role.ADMIN);
     }
 
     @GetMapping
     public String list(Model model) {
-        // TODO(MANAL): Admin-only gate + current user for the header fragment.
+        requireAdmin();
         List<Project> all = projects.findAll();
         model.addAttribute("projects", all);
-        model.addAttribute("currentUser", "Signed-in user");   // TODO(MANAL): session
-        model.addAttribute("currentRole", "ADMIN");            // TODO(MANAL): session
         return "projects/projects";
     }
 
     @GetMapping("/new")
     public String createForm(Model model) {
-        // TODO(MANAL): Admin-only gate.
-        model.addAttribute("currentUser", "Signed-in user");
-        model.addAttribute("currentRole", "ADMIN");
+        requireAdmin();
         return "projects/project-form";
     }
 
@@ -62,7 +79,7 @@ public class ProjectController {
     public String create(@RequestParam("name") String name,
                          Model model,
                          RedirectAttributes redirect) {
-        // TODO(MANAL): Admin-only gate.
+        requireAdmin();
         try {
             Project project = projects.create(name);
             redirect.addFlashAttribute("flashMessage",
@@ -72,27 +89,21 @@ public class ProjectController {
             // EC-36 — message names the duplicated project.
             model.addAttribute("error", e.getMessage());
             model.addAttribute("name", name);
-            model.addAttribute("currentUser", "Signed-in user");
-            model.addAttribute("currentRole", "ADMIN");
             return "projects/project-form";
         } catch (ProjectValidationException e) {
             model.addAttribute("error", e.getMessage());
             model.addAttribute("name", name);
-            model.addAttribute("currentUser", "Signed-in user");
-            model.addAttribute("currentRole", "ADMIN");
             return "projects/project-form";
         }
     }
 
     @GetMapping("/{id}/manager")
     public String managerForm(@PathVariable("id") Long id, Model model) {
-        // TODO(MANAL): Admin-only gate.
+        requireAdmin();
         Project project = projects.get(id);
         model.addAttribute("project", project);
         model.addAttribute("assigning", project.getManagerEmail() == null
                 || project.getManagerEmail().isBlank());
-        model.addAttribute("currentUser", "Signed-in user");
-        model.addAttribute("currentRole", "ADMIN");
         return "projects/project-manager";
     }
 
@@ -101,7 +112,7 @@ public class ProjectController {
                               @RequestParam("managerEmail") String managerEmail,
                               Model model,
                               RedirectAttributes redirect) {
-        // TODO(MANAL): Admin-only gate.
+        requireAdmin();
         try {
             Project project = projects.get(id);
             Project saved;
@@ -124,8 +135,6 @@ public class ProjectController {
                     || project.getManagerEmail().isBlank());
             model.addAttribute("error", e.getMessage());
             model.addAttribute("managerEmail", managerEmail);
-            model.addAttribute("currentUser", "Signed-in user");
-            model.addAttribute("currentRole", "ADMIN");
             return "projects/project-manager";
         }
     }
@@ -136,7 +145,7 @@ public class ProjectController {
      */
     @GetMapping("/{id}/close")
     public String closeForm(@PathVariable("id") Long id, Model model) {
-        // TODO(MANAL): Admin-only gate.
+        requireAdmin();
         Project project = projects.get(id);
         if (!project.isOpen()) {
             return "redirect:/projects";
@@ -144,8 +153,6 @@ public class ProjectController {
         model.addAttribute("project", project);
         model.addAttribute("openCount", projects.countOpenReports(id));
         model.addAttribute("pendingCount", projects.countPendingReports(id));
-        model.addAttribute("currentUser", "Signed-in user");
-        model.addAttribute("currentRole", "ADMIN");
         return "projects/project-close";
     }
 
@@ -157,7 +164,7 @@ public class ProjectController {
     public String close(@PathVariable("id") Long id,
                         @RequestParam(value = "confirm", defaultValue = "false") boolean confirm,
                         RedirectAttributes redirect) {
-        // TODO(MANAL): Admin-only gate.
+        requireAdmin();
         Project project = projects.get(id);
         if (!confirm) {
             // FR-34 / AC-27 decline path — no state change at all.

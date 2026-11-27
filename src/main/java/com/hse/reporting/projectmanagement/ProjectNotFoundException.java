@@ -1,4 +1,4 @@
-package hse.reporting.project;
+package com.hse.reporting.projectmanagement;
 
 /** Thrown when a project lookup by id fails (no such project). */
 public class ProjectNotFoundException extends RuntimeException {
