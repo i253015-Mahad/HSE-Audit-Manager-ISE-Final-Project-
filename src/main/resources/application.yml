@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: hse-reporting
+
+  # MySQL (ADR-04 / ADR-08). Override with HSE_DB_USER / HSE_DB_PASSWORD in non-development environments.
+  datasource:
+    url: jdbc:mysql://localhost:3306/hse_reporting?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${HSE_DB_USER:hse}
+    password: ${HSE_DB_PASSWORD:hse-dev-pass}
+
+  # Schema baseline (schema.sql) and development seed data (data.sql) are the single source of truth.
+  sql:
+    init:
+      mode: always
+
+  jpa:
+    hibernate:
+      ddl-auto: validate   # never generate schema from entities; validate against schema.sql
+    open-in-view: false
+
+  thymeleaf:
+    cache: false
+
+server:
+  port: 8080
+  servlet:
+    session:
+      timeout: 180m   # 3 hours (agreed with product owner, Slice 1)

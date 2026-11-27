@@ -1,29 +1,12 @@
 # Implementation Plan — Current
 
-**Version:** v03 (current; Mahad's line: `plan-v01-Mahad.md`, `plan-v02-Mahad.md`, `plan-v03-Mahad.md`)
+**Version:** v01 (see `plan-v01.md` for this revision's snapshot)
 **Date:** 25 November 2026
-**Status:** Slice 6 (Project Management & Closure) — delivered (awaiting Manal's skeleton to run)
-**History:** Supersedes `plan-v02-Mahad.md`; this revision is preserved as `plan-v03-Mahad.md`.
+**Status:** Initial baseline
 
-## Changes from v02
-
-1. **Plan version naming convention (team decision, 25 Nov 2026):** each team member
-   preserves their own plan versions with their name in the filename
-   (`plan-vNN-Mahad.md`, `plan-vNN-Manal.md`, `plan-vNN-Eman.md`). The shared current
-   artefact remains `docs/plans/plan.md`; historical versions are per-author so parallel
-   plans never collide.
-2. **Labor split recorded:** Manal = Slice 1 (foundation & auth), Eman = Slices 3–4
-   (report creation / approval), Mahad = Slice 2 (dashboard) + Slice 6 (project
-   management & closure).
-3. **Corrected closure FR citations:** v02 Slice 6 row cited "FR-34, FR-35" only.
-   Project closure is governed by **FR-32** (Open-report warning + confirm),
-   **FR-33** (confirm → auto-close all Open, then close project), **FR-34**
-   (decline → nothing changes), **FR-35** (Pending-report discard warning),
-   plus **FR-30** (create), **FR-31** (Manager assign/reassign + unique names),
-   **FR-36** (post-closure no report changes).
-4. **Slice 2 status:** UI delivered (dashboard.html, fragments/header.html,
-   dashboard.css); data integration pending Slices 1/3/4/5.
-5. **Slice 6 status:** in progress (this revision).
+> This is the current, living `plan.md`. When its content changes meaningfully, the prior
+> version is preserved as `plan-vNN.md` in this directory (zero-padded numbering) before
+> saving the new current version.
 
 ---
 
@@ -43,106 +26,91 @@ delete → Deleted tab (Admin-only) → 3-month retention → purge all project 
 
 ## 2. Implementation Assumptions & Open Issues
 
-All 12 OQs and 8 assumptions are resolved/confirmed in `docs/PRD.md` §15/§16.
-Key points: ADR-08 stack (Java, Spring Boot, Thymeleaf, Spring Security, MySQL+JPA,
-local photo storage, single JAR); A-03 revised (rejection notification + edit/resubmit +
-version snapshots); incident = date + location + type; corrective action Open-only,
-Manager+Admin only; closure auto-closes Open and discards Pending on confirm; purge-all
-at 3 months; Manager reassignment + unique project names.
+All 12 original open questions (OQ-01…OQ-12) and all 8 assumptions (A-01…A-08) are
+**resolved/confirmed** in `docs/PRD.md` §15 and §16. Key confirmed points:
 
-**Team division (confirmed):**
+- **Tech stack (ADR-08):** Java, Spring Boot, Thymeleaf, Spring Security, MySQL
+  (Spring Data JPA), local filesystem photo storage, single executable JAR.
+- **A-03 (revised):** Rejection reason is stored in-system and notified to the owning
+  Inspector; rejected reports are editable and resubmittable; each submission saves an
+  immutable version snapshot.
+- **Incident identity:** date + location + incident type (FR-05).
+- **Corrective action:** editable only while Open; visible to Manager + Admin only;
+  retained through delete/restore; purged under FR-39.
+- **Closure:** Open reports auto-closed on confirmed project closure; Pending reports
+  warned then discarded on confirm (OQ-06).
+- **Retention:** at 3-month expiry purge ALL project data (OQ-08/A-08).
+- **Manager reassignment:** allowed while project open; project names unique (OQ-10).
+- **Test load:** 50 concurrent users, 1,000 reports, 50 projects, 2,000 photos;
+  95% requests < 2s (OQ-09/NFR-02).
 
-- **Manal** — Slice 1: application skeleton (pom.xml, main class, Spring Security,
-  MySQL config) + login/authorization.
-- **Eman** — Slice 3: report creation & photo evidence; Slice 4: approval/rejection.
-- **Mahad** — Slice 2: dashboard interface (UI delivered); Slice 6: project management
-  & closure (this revision).
-
-**Foundation decision:** "Wait for Manal" — Mahad writes files in standard Spring Boot
-paths; they are not compilable/runnable until Manal's skeleton arrives. Auth-dependent
-behavior is stubbed with `TODO(MANAL)`; report-dependent behavior with `TODO(EMAN)`.
-
-**Slice 6 open issues:**
-
-- **Port for Eman (AGENTS.md §6.8 proposal):** `ProjectReportSummary`
-  (`countOpen`, `countPending`, `closeAllOpen`, `discardPending`). Interim default
-  returns 0 / no-op with a loud `TODO(EMAN)` — closure works but the Flow 9.4 warnings
-  show zero counts until the report module lands. Real report side-effects are Eman's.
-- **Auth gates:** `TODO(MANAL)` — server-side Admin-only enforcement required before
-  delivery (AGENTS.md §8; permission matrix §4: create/assign/close = Admin Yes only).
-- **Package:** `hse.reporting.project` is a temporary package pending alignment with
-  Manal's skeleton layout (flag if different).
+**Open issues:** None. Any future change to these decisions requires human approval and
+an updated ADR / PRD revision per `docs/AGENTS.md`.
 
 ## 3. Vertical Slices
 
-| Slice | Name | Owner | Scope |
-|---|---|---|---|
-| 1 | Project Foundation & Authentication | Manal | Skeleton, schema baseline, Spring Security login, role + project-scope authorization (ADR-03). |
-| 2 | Dashboard Interface | Mahad | Post-login landing page: role-based report lists (FR-14/15/16), rejection notifications (FR-42). **UI delivered**; data integration pending Slices 1/3/4/5. |
-| 3 | Report Creation & Photo Evidence | Eman | Submit reports (FR-01–FR-05), duplicate check (FR-06), photo upload (FR-07, ADR-06), Pending Approval. |
-| 4 | Manager Approval & Rejection Workflow | Eman | Approve → Open (FR-09), reject with reason → Rejected + notification (FR-11, FR-42), edit/resubmit + versions (FR-43, FR-44). |
-| 5 | Report Visibility & Corrective Actions | — | Role-scoped report queries backing the dashboard lists (FR-14/15/16), corrective action CRUD while Open (FR-20, FR-21, FR-47). |
-| 6 | Project Management & Closure | **Mahad — IN PROGRESS** | Create project (FR-30), assign/reassign Manager email + unique names (FR-31, EC-36), close with Open warning (FR-32) / confirm auto-close (FR-33) / decline (FR-34), Pending discard warning (FR-35), post-closure read-only (FR-36). |
-| 7 | Delete, Restore & Audit History | — | Delete → Deleted tab (FR-25), restore while project open (FR-26), audit actor/action/timestamp (FR-46), Admin-only audit view. |
-| 8 | Retention Purge | — | 3-month purge of ALL project data (FR-39, NFR-03). |
+| Slice | Name | Scope |
+|---|---|---|
+| 1 | Project Foundation & Authentication | Project skeleton, database schema baseline, Spring Security login, role + project-scope authorization (ASR-01, ADR-03), base layout/templates. |
+| 2 | Report Creation & Photo Evidence | Inspector submits reports (FR-01–FR-05), duplicate incident check (FR-06), photo upload validation (FR-07, ADR-06), Pending Approval state. |
+| 3 | Manager Approval & Rejection Workflow | Manager review, approve → Open (FR-09, FR-11), reject with reason → Rejected + in-system notification (FR-42), Inspector edit/resubmit with version snapshots (FR-43, FR-44). |
+| 4 | Report Visibility & Corrective Actions | Report lists/detail by role (FR-14, FR-15, FR-16), corrective action CRUD while Open, Manager/Admin-only view (FR-20, FR-21, FR-47). |
+| 5 | Project Management & Closure | Admin project CRUD, unique names, Manager assignment/reassignment (FR-31, FR-45), project closure with auto-close Open + discard Pending on confirm (FR-34, FR-35). |
+| 6 | Delete, Restore & Audit History | Admin delete Closed → Deleted tab (FR-25), restore while project open (FR-26), automatic audit records actor/action/timestamp (FR-46), Admin-only audit view. |
+| 7 | Retention Purge & Dashboard | 3-month retention purge of ALL project data (FR-39, NFR-03), role-based dashboards/notifications (FR-17, FR-18). |
 
 ## 4. Slice Priorities and Order
 
-1. **Slice 1** — Foundation & Auth (Manal; blocking everything data-wired).
-2. **Slice 2** — Dashboard interface (Mahad; UI delivered).
-3. **Slice 3** — Report creation (Eman, parallel).
-4. **Slice 4** — Approval/rejection loop (Eman).
-5. **Slice 5** — Visibility queries + corrective actions (feeds dashboard lists).
-6. **Slice 6** — Project management + closure (Mahad; in progress).
-7. **Slice 7** — Delete/restore/audit.
-8. **Slice 8** — Retention purge.
+1. **Slice 1** — Foundation (blocking everything else).
+2. **Slice 2** — Report creation (first end-to-end Inspector value).
+3. **Slice 3** — Approval/rejection loop (core lifecycle).
+4. **Slice 4** — Visibility + corrective actions (Manager/Admin value).
+5. **Slice 5** — Project management + closure.
+6. **Slice 6** — Delete/restore/audit.
+7. **Slice 7** — Retention purge + dashboards (final hardening).
 
 ## 5. Dependencies
 
-- Slice 1 blocks all data-wired slices (auth/session/roles).
-- Slice 2 UI: no hard dependency (delivered); data wiring ← Slices 1/3/4/5.
-- Slice 3 ← Slice 1; Slice 4 ← Slice 3; Slice 5 ← Slice 4;
-  Slice 6 ← Slice 1 (auth skeleton) + port stub for Slice 3/4 report counts;
-  Slice 7 ← Slice 6; Slice 8 ← Slice 6 (+ 7 for purging audit/deleted data).
+- Slice 1 must complete before any other slice (auth, schema, layout).
+- Slice 3 depends on Slice 2 (reports must exist before approval).
+- Slice 4 depends on Slice 3 (Open/Rejected states must exist).
+- Slice 5 depends on Slice 3 (closure interacts with Pending/Open/Rejected).
+- Slice 6 depends on Slice 5 (restore checks project-open state).
+- Slice 7 depends on Slice 5 (retention triggers from project closure timestamp) and
+  Slice 6 (purges audit/deleted data).
 
 ## 6. Acceptance Criteria
 
-Authoritative text in `docs/PRD.md` §11.
+Full criteria live in `docs/PRD.md` §11 (AC-01…AC-41). Per-slice mapping:
 
-| Slice | ACs |
+| Slice | PRD Acceptance Criteria |
 |---|---|
-| 1 | AC-01…AC-05 + NFR-01 |
-| 2 (Dashboard) | AC-12, AC-13, AC-14, AC-15, AC-16, AC-41 |
-| 3 | AC-06…AC-10, AC-37 |
-| 4 | AC-11, AC-12, AC-34 |
-| 5 | AC-17…AC-24, AC-40 |
-| **6 (Projects)** | **AC-27** (Open warning + confirm/decline), **AC-28** (Pending discard warning), **AC-31** (create + add Manager; second Manager refused), **AC-33** (authorization denial incl. direct access), plus AC-25, AC-26, AC-29, AC-30, AC-32, AC-35, AC-36 |
-| 7 | AC-38 |
-| 8 | AC-30, NFR-02, NFR-03 |
+| 1 | NFR-01 (email + password auth), AC-32 (role-appropriate interface), AC-33 (deny everything outside permission matrix) |
+| 2 | AC-04…AC-08, AC-37 (dup check), AC-41 (reject-notify-only-owner precondition) |
+| 3 | AC-09…AC-15, AC-34 (resubmit + version) |
+| 4 | AC-16…AC-24, AC-40 (audit + corrective restore) |
+| 5 | AC-25…AC-33, AC-35 (reassign + audit), AC-36 (unique name) |
+| 6 | AC-38 (cannot delete/restore rejected), AC-40 |
+| 7 | AC-30 (purge all), NFR-02 (test volumes), NFR-03 (retention) |
 
-Key exception/error cases for Slice 6: EC-09 (project without Manager not accepted for
-reports), EC-10 (second Manager refused), EC-13 (pending stays if Manager never acts),
-EC-14 (Manager replaced → new Manager views), EC-36 (duplicate project name refused
-with the name in the message).
+*(Exact AC text is authoritative in `docs/PRD.md`.)*
 
 ## 7. Current Slice Status
 
 | Slice | Status |
 |---|---|
-| 1 — Foundation & Auth | Owned by Manal — in progress (per team) |
-| 2 — Dashboard Interface | **UI delivered** (dashboard.html, fragments/header.html, dashboard.css); data integration pending Slices 1/3/4/5 |
-| 3 — Report Creation & Photos | Owned by Eman — in progress (per team) |
-| 4 — Approval & Rejection | Not started (Eman) |
-| 5 — Visibility & Corrective Actions | Not started |
-| 6 — Project Management & Closure | **UI + module + tests delivered (Mahad)** — not runnable/compilable until Manal's skeleton (pom.xml) lands; report side-effects via port stub until Eman's module |
-| 7 — Delete, Restore & Audit | Not started |
-| 8 — Retention Purge | Not started |
+| 1 — Foundation & Auth | **Complete** |
+| 2 — Report Creation & Photos | Not started |
+| 3 — Approval & Rejection | Not started |
+| 4 — Visibility & Corrective Actions | Not started |
+| 5 — Project Management & Closure | Not started |
+| 6 — Delete, Restore & Audit | Not started |
+| 7 — Retention Purge & Dashboard | Not started |
 
-**Overall:** Docs complete; Slice 2 UI delivered; Slice 6 implementation underway in
-parallel with Manal's auth (Slice 1) and Eman's reports (Slice 3).
+**Overall:** Documentation complete; Slice 1 implemented and passing (32 tests). Slices 2–7 not started.
 
 ---
 
 *Living artefact. Update whenever sequencing, dependencies, scope, decisions, or
-implementation understanding changes; preserve every meaningful version as
-`plan-vNN-Mahad.md` in `docs/plans/` (zero-padded; teammates use their own names).*
+implementation understanding changes. Preserve every meaningful version as
+`plan-vNN.md` in `docs/plans/`.*

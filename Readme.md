@@ -27,6 +27,63 @@ projects, with role-based workflows for Inspectors, Managers, and Admin/HSE Engi
 | Photo storage | Local filesystem (references stored in DB, ADR-06) |
 | Packaging | Single executable JAR |
 
+## Build and Run
+
+Requirements: JDK 21, Maven, MySQL 8 (`hse_reporting` database).
+
+```powershell
+# Environment (this machine's install locations)
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.13.10002-hotspot"
+$maven = "C:\Users\Manal\tools\apache-maven-3.9.9\bin\mvn"
+```
+
+### 1. Start MySQL (portable install)
+
+```powershell
+$base = "$env:USERPROFILE\tools\mysql-8.4.13.1-winx64"
+Start-Process -FilePath "$base\bin\mysqld.exe" `
+  -ArgumentList "--no-defaults","--basedir=$base","--datadir=$env:USERPROFILE\tools\mysql-data","--port=3306" `
+  -WindowStyle Hidden
+& "$base\bin\mysqladmin.exe" --no-defaults -u root ping   # expect: mysqld is alive
+```
+
+One-time database/user setup (already done):
+
+```sql
+CREATE DATABASE hse_reporting CHARACTER SET utf8mb4;
+CREATE USER 'hse'@'localhost' IDENTIFIED BY 'hse-dev-pass';
+GRANT ALL PRIVILEGES ON hse_reporting.* TO 'hse'@'localhost';
+```
+
+Connection settings live in `src/main/resources/application.yml` (override with
+`HSE_DB_USER` / `HSE_DB_PASSWORD` env vars). On every start Spring runs
+`schema.sql` (idempotent DDL) and `data.sql` (demo seeds); Hibernate only
+**validates** entities against the schema (`ddl-auto: validate`).
+
+### 2. Run the application
+
+```powershell
+& $maven spring-boot:run
+```
+
+Open <http://localhost:8080/login>.
+
+### 3. Demo accounts (development seed, password `hse-demo-123`)
+
+| Email | Role | Scope |
+|---|---|---|
+| `manal12cf@gmail.com` | Admin | All projects (cross-project oversight) |
+| `mahadwaqas28@gmail.com` | Manager | Head Office Fit-Out only |
+| `i253172@nu.edu.pk` | Inspector | Own reports only (Slice 2+) |
+| `extra.manager@hse.local` | Manager | Warehouse Extension only |
+| `extra.inspector@hse.local` | Inspector | — |
+
+### 4. Tests
+
+```powershell
+& $maven test          # uses an in-memory H2 database (test profile), no MySQL needed
+```
+
 ## Documentation
 
 | Document | Purpose |

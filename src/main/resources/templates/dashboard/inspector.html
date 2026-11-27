@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Inspector')}"></head>
+<body>
+
+<header th:replace="~{fragments :: topbar}"></header>
+
+<main class="container">
+    <h1>Inspector</h1>
+    <p class="lead">You are signed in as a Safety Team Inspector.</p>
+
+    <section class="card">
+        <h2>My safety reports</h2>
+        <p>Report submission becomes available here once report creation is delivered.</p>
+        <p class="note">You can only ever see reports you submitted yourself.</p>
+    </section>
+</main>
+
+</body>
+</html>

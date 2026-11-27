@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Session expired')}"></head>
+<body>
+
+<main class="login-card">
+    <h1>Session expired</h1>
+    <p class="subtitle">Your session has expired. Please sign in again to continue.</p>
+    <p><a class="primary button-link" th:href="@{/login}">Sign in</a></p>
+</main>
+
+</body>
+</html>

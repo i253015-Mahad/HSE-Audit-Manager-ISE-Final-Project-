@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' · HSE Safety Reporting'">HSE Safety Reporting</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+
+<!-- Shared top bar: shows only what the current role is allowed to reach.
+     Server-side rules in SecurityConfig and the use cases remain the enforcement (ASR-01). -->
+<header th:fragment="topbar" class="topbar">
+    <nav class="topnav">
+        <a class="brand" th:href="@{/}">HSE Safety Reporting</a>
+        <div class="nav-right">
+            <a class="navlink" th:if="${currentUserRole == 'INSPECTOR'}" th:href="@{/inspector}">Inspector</a>
+            <a class="navlink" th:if="${currentUserRole == 'MANAGER'}" th:href="@{/manager}">Manager</a>
+            <a class="navlink" th:if="${currentUserRole == 'ADMIN'}" th:href="@{/admin}">Admin</a>
+            <span class="badge" th:if="${currentUserRole != null and currentUserRole != ''}"
+                  th:text="${currentUserRole}">ROLE</span>
+            <span class="who" th:if="${currentUserRole != null and currentUserRole != ''}"
+                  th:text="${currentUserEmail}">user@example.com</span>
+            <form class="inline" th:if="${currentUserRole != null and currentUserRole != ''}"
+                  th:action="@{/logout}" method="post">
+                <button class="linklike" type="submit">Log out</button>
+            </form>
+        </div>
+    </nav>
+</header>
+
+</body>
+</html>
