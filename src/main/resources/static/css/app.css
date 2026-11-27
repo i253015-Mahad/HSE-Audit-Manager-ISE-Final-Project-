@@ -1,0 +1,176 @@
+/* HSE Safety Reporting System — base layout (ADR-08: team-owned CSS, no framework). */
+
+:root {
+    --ink: #1f2933;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --brand: #0f5132;
+    --brand-ink: #ffffff;
+    --surface: #ffffff;
+    --background: #f4f6f5;
+    --error: #b42318;
+    --info: #0369a1;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--background);
+    line-height: 1.5;
+}
+
+a { color: var(--brand); }
+
+/* ---- top bar ---- */
+.topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+}
+
+.topnav {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.brand {
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--brand);
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.navlink {
+    text-decoration: none;
+    color: var(--ink);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.navlink:hover { background: var(--background); }
+
+.badge {
+    background: var(--brand);
+    color: var(--brand-ink);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+}
+
+.who { color: var(--muted); font-size: 0.9rem; }
+
+/* ---- layout ---- */
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+}
+
+.container.narrow { max-width: 560px; }
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+}
+
+/* A card that carries its own header (site.css .card-header: title row with
+   divider) must stay flush so the header and the table below fill the card.
+   Keeps site.css page cards looking the same under the Slice 1 .card rule. */
+.card:has(> .card-header) {
+    padding: 0;
+    overflow: hidden;
+}
+
+.lead { color: var(--muted); }
+.note { color: var(--muted); font-size: 0.9rem; }
+.muted { color: var(--muted); margin-left: 0.5rem; font-size: 0.9rem; }
+
+.list { list-style: none; margin: 0.5rem 0 0; padding: 0; }
+.list li {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+}
+.list li:last-child { border-bottom: none; }
+
+/* ---- login ---- */
+.page-login {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1rem;
+}
+
+.login-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 10px 30px rgba(15, 81, 50, 0.08);
+}
+
+.login-card h1 { margin: 0 0 0.25rem; font-size: 1.4rem; color: var(--brand); }
+.subtitle { margin-top: 0; color: var(--muted); }
+
+.stack { display: flex; flex-direction: column; gap: 0.4rem; }
+.stack label { font-size: 0.9rem; margin-top: 0.4rem; }
+
+input[type="email"],
+input[type="password"] {
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+button.primary,
+.button-link {
+    margin-top: 1rem;
+    padding: 0.65rem 1rem;
+    background: var(--brand);
+    color: var(--brand-ink);
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+button.linklike {
+    background: none;
+    border: none;
+    color: var(--brand);
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-decoration: underline;
+    padding: 0;
+}
+
+.inline { display: inline; margin: 0; }
+
+.alert { margin: 0.5rem 0 0; font-size: 0.9rem; }
+.alert.error { color: var(--error); }
+.alert.info { color: var(--info); }
+
+.hint { color: var(--muted); font-size: 0.8rem; margin-top: 1.5rem; }

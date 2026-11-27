@@ -1,0 +1,59 @@
+/* ============================================================
+   HSE Safety Reporting System — Dashboard page styles (Slice 2)
+   Loads AFTER site.css (shared base: tokens, topbar, cards,
+   tables, badges, empty state, footer).
+   ============================================================ */
+
+/* ---------- Notifications ---------- */
+
+.notification-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.notification {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 0.8rem 1.25rem;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.93rem;
+}
+
+.notification:last-child {
+    border-bottom: none;
+}
+
+.notification-ref {
+    font-weight: 700;
+    color: var(--brand);
+    white-space: nowrap;
+}
+
+.notification-reason {
+    flex: 1;
+}
+
+.notification-time {
+    color: var(--muted);
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+
+/* ---------- Reports table extras ---------- */
+
+.cell-reason {
+    white-space: normal;
+    min-width: 14rem;
+    color: var(--muted);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 720px) {
+    .notification {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+}

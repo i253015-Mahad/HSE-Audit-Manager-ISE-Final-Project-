@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' · HSE Safety Reporting'">HSE Safety Reporting</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+
+<!-- Head for pages that combine both slices' markup (dashboards + project pages):
+     they need site.css classes (tables, buttons, empty states, card headers) AND
+     the Slice 1 design system. app.css loads LAST so the shared selectors
+     (.topbar, .card, .badge, .brand, .subtitle, .muted, .alert) resolve to the
+     Slice 1 design system — one look across the whole application.
+     projects.css loads after app.css only because it re-decorates .card
+     (.warning-card) and its selectors are unique to the closure page. -->
+<head th:fragment="headWithSite(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' · HSE Safety Reporting'">HSE Safety Reporting</title>
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/projects.css}">
+</head>
+<body>
+
+<!-- Shared top bar: shows only what the current role is allowed to reach.
+     Server-side rules in SecurityConfig and the use cases remain the enforcement (ASR-01). -->
+<header th:fragment="topbar" class="topbar">
+    <nav class="topnav">
+        <a class="brand" th:href="@{/}">HSE Safety Reporting</a>
+        <div class="nav-right">
+            <a class="navlink" th:if="${currentUserRole == 'INSPECTOR'}" th:href="@{/inspector}">Inspector</a>
+            <a class="navlink" th:if="${currentUserRole == 'MANAGER'}" th:href="@{/manager}">Manager</a>
+            <a class="navlink" th:if="${currentUserRole == 'ADMIN'}" th:href="@{/admin}">Admin</a>
+            <!-- Project Management (Slice 6) is Admin-only (PRD section 4); the link
+                 is display-only — /projects/** is denied for other roles server-side. -->
+            <a class="navlink" th:if="${currentUserRole == 'ADMIN'}" th:href="@{/projects}">Projects</a>
+            <span class="badge" th:if="${currentUserRole != null and currentUserRole != ''}"
+                  th:text="${currentUserRole}">ROLE</span>
+            <span class="who" th:if="${currentUserRole != null and currentUserRole != ''}"
+                  th:text="${currentUserEmail}">user@example.com</span>
+            <form class="inline" th:if="${currentUserRole != null and currentUserRole != ''}"
+                  th:action="@{/logout}" method="post">
+                <button class="linklike" type="submit">Log out</button>
+            </form>
+        </div>
+    </nav>
+</header>
+
+<!--
+  ============================================================================
+  Slice 2 — Dashboard cards (see docs/plans/plan.md, section 7).
+  Scope: role-based report lists (PRD FR-14 / FR-15 / FR-16) + rejection
+  notifications for the owning Inspector (PRD FR-42).
+  No statistics/charts — outside PRD scope (AGENTS.md section 12.15).
+
+  MODEL CONTRACT — both cards are shared by all three role dashboards:
+
+    currentUserEmail / currentUserRole : published by CurrentUserModelAdvice
+                                          on every request.
+    reports     : List<...>   — ALREADY FILTERED server-side to the acting
+                                role's visibility rules; the presentation layer
+                                must not re-implement filtering (AGENTS.md 8):
+                                  FR-14 Inspector : own reports only — pending,
+                                      rejected (with reason), Open, Closed
+                                  FR-15 Manager   : assigned projects only —
+                                      pending, rejected, Open, Closed
+                                  FR-16 Admin     : approved, non-deleted
+                                      Open + Closed across ALL projects;
+                                      never pending or rejected (FR-12, AC-13)
+    notifications : List<...> — rejection notifications for the OWNING
+                                Inspector only (FR-42, AC-12 / AC-41)
+
+    Report fields used here    : id, reference, project, incidentDate,
+                                 location, status, rejectionReason (nullable)
+    Notification fields used   : id, reportReference, reason, createdAt
+
+    While the report module is absent both attributes are simply not supplied:
+    the cards render their empty state (docs/plans/plan.md section 7).
+
+  TODO(EMAN / Slices 3–5 — reports): supply `reports` via the application
+      layer (role-scoped query owned by Safety Report Management).
+  TODO(Slice 4 — rejection workflow): supply `notifications`.
+  ============================================================================
+-->
+
+<!-- Rejection notifications (FR-42) — only ever supplied for the owning Inspector -->
+<section th:fragment="notificationsCard" class="card" aria-labelledby="notifications-title">
+    <div class="card-header">
+        <h2 id="notifications-title">Notifications</h2>
+        <span class="card-note">Rejection reasons for your reports</span>
+    </div>
+
+    <ul class="notification-list"
+        th:if="${notifications != null and !notifications.isEmpty()}">
+        <li class="notification" th:each="n : ${notifications}">
+            <span class="notification-ref" th:text="${n.reportReference}">RPT-0001</span>
+            <span class="notification-reason" th:text="${n.reason}">Rejection reason text</span>
+            <span class="notification-time" th:text="${n.createdAt}">25 Nov 2026</span>
+        </li>
+    </ul>
+
+    <div class="empty-state"
+         th:unless="${notifications != null and !notifications.isEmpty()}">
+        <p>No notifications.</p>
+    </div>
+</section>
+
+<!-- Role-based report lists (FR-14 / FR-15 / FR-16) -->
+<section th:fragment="reportsCard" class="card" aria-labelledby="reports-title">
+    <div class="card-header">
+        <h2 id="reports-title">Reports</h2>
+        <span class="card-note"
+              th:text="${currentUserRole == 'INSPECTOR' ? 'Your reports'
+                      : currentUserRole == 'MANAGER' ? 'Reports of your assigned projects'
+                      : currentUserRole == 'ADMIN' ? 'Open and closed reports across all projects'
+                      : 'Report visibility depends on your role'}">
+            Report visibility depends on your role
+        </span>
+    </div>
+
+    <div class="table-wrap" th:if="${reports != null and !reports.isEmpty()}">
+        <table class="data-table">
+            <thead>
+            <tr>
+                <th scope="col">Ref</th>
+                <th scope="col">Project</th>
+                <th scope="col">Incident date</th>
+                <th scope="col">Location</th>
+                <th scope="col">Status</th>
+                <th scope="col">Rejection reason</th>
+                <th scope="col"><span class="visually-hidden">Actions</span></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="report : ${reports}">
+                <td class="cell-ref" th:text="${report.reference}">RPT-0001</td>
+                <td th:text="${report.project}">Project name</td>
+                <td th:text="${report.incidentDate}">25 Nov 2026</td>
+                <td th:text="${report.location}">Site location</td>
+                <td>
+                    <span class="badge"
+                          th:if="${report.status != null}"
+                          th:classappend="'status-' + #strings.replace(#strings.toLowerCase(report.status), ' ', '-')"
+                          th:text="${report.status}">Open</span>
+                    <span class="badge" th:unless="${report.status != null}">—</span>
+                </td>
+                <td class="cell-reason"
+                    th:text="${report.rejectionReason != null ? report.rejectionReason : '—'}">—</td>
+                <!-- TODO(EMAN): report detail view route when the report interface lands -->
+                <td class="cell-action">
+                    <a href="#" th:href="@{/reports/{id}(id=${report.id})}">View</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="empty-state"
+         th:unless="${reports != null and !reports.isEmpty()}">
+        <p>No reports to show.</p>
+    </div>
+</section>
+
+</body>
+</html>

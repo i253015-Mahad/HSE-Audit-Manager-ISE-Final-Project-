@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: headWithSite('Manager')}"></head>
+<body>
+
+<header th:replace="~{fragments :: topbar}"></header>
+
+<main class="container">
+    <h1>Manager</h1>
+    <p class="lead">You are signed in as a Manager. Your access is limited to the projects assigned to you.</p>
+
+    <!-- FR-15 — reports of the projects assigned to this Manager only -->
+    <th:block th:replace="~{fragments :: reportsCard}"></th:block>
+
+    <section class="card">
+        <h2>My projects</h2>
+        <p class="note" th:if="${#lists.isEmpty(assignedProjects)}">
+            No project is currently assigned to you. Ask an HSE Engineer/Admin to assign one.
+        </p>
+        <ul class="list" th:unless="${#lists.isEmpty(assignedProjects)}">
+            <li th:each="project : ${assignedProjects}">
+                <span th:text="${project.name}">Project</span>
+                <span class="muted" th:text="'#' + ${project.id}">#1</span>
+            </li>
+        </ul>
+    </section>
+</main>
+
+</body>
+</html>

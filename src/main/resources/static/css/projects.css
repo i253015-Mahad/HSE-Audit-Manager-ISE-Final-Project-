@@ -1,0 +1,57 @@
+/* ============================================================
+   HSE Safety Reporting System — Projects page styles (Slice 6)
+   Loads AFTER site.css (shared base).
+   ============================================================ */
+
+/* ---------- Closure warning page (flow 9.4) ---------- */
+
+.warning-card {
+    border-color: #fcd34d;
+}
+
+.warning-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.warning {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem 1.25rem;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.93rem;
+}
+
+.warning:last-child {
+    border-bottom: none;
+}
+
+.warning-count {
+    flex: 0 0 auto;
+    min-width: 3.2rem;
+    text-align: center;
+    background: #fef3c7;
+    color: #92400e;
+    font-weight: 700;
+    font-size: 1rem;
+    border-radius: 999px;
+    padding: 0.25rem 0.5rem;
+}
+
+.warning-text {
+    flex: 1;
+}
+
+.warning-info .warning-count {
+    background: var(--line);
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.warning-actions {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--line);
+    background: #fffdf7;
+}

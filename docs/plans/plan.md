@@ -1,26 +1,35 @@
 # Implementation Plan — Current
 
-**Version:** v04 (current; preserved as `plan-v04-Eman.md`; Mahad's line: `plan-v01-Mahad.md`, `plan-v02-Mahad.md`, `plan-v03-Mahad.md`)
+**Version:** v05 (current; Eman's line: `plan-v04-Eman.md`; Mahad's line: `plan-v01-Mahad.md` … `plan-v03-Mahad.md`; Manal's line: `plan-v02-Manal.md`)
 **Date:** 27 November 2026
-**Status:** Slice 3 (Report Creation & Photo Evidence) — implemented in this repository; compiles, 14 unit tests pass, and the app was started against local MySQL with an end-to-end submission verified (27 Nov 2026)
-**History:** Supersedes v03; the pre-change document is preserved as `plan-v04-Eman.md`.
+**Status:** Slices 1, 2, 3 and 6 are now merged into one runnable application on branch `eman`; Slice 3 pages have been aligned to Slice 1's shared theme and layout fragments.
+**History:** Supersedes v04 (both authors). The pre-merge Eman revision is preserved as `plan-v04-Eman.md`.
 
-## Changes from v03
+## Changes from v04 — integration of Eman's Slice 3
 
-1. **Slice 3 implemented here** (`docs/`-only repository had no source): added a minimal
-   runnable Maven/Spring Boot baseline (ADR-08 stack) plus the report-creation flow.
-2. **Team decisions recorded:** photographs are capped at 3 per violation, 10 MB each,
-   JPEG or PNG only; hazard category and severity level lists are team-supplied via
-   configuration and always include an **OTHER** free-text option.
-3. **Open issues resolved by proposal** (no separate human decision requested):
-   FR-44 version snapshot is recorded on the first submission too (AC-37);
-   double submission is blocked by a pessimistic-locked one-time form token (EC-12);
-   A-04 Inspector→Manager designation is one `manager_email` on the user record.
-4. **Status representation:** `submission_status` and nullable `progress_status` are
-   separate columns, keeping Pending Approval distinct from Open/Closed (AGENTS.md §7).
-5. **Conflict still open:** this repo contains no code from Slices 1/2/6 despite their
-   "delivered" status in v03; the new baseline is a minimum skeleton, not a replacement
-   for Manal's/Dashboard code. Reconcile when those sources are available.
+1. **Merged `origin/main` (Slices 1/2/6, packages `com.hse.reporting`) into Eman's
+   branch (Slice 3, package `hse.reporting`)**, keeping Slice 1's `pom.xml`,
+   `SecurityConfig` (email login), `fragments.html`, CSS design system and role
+   dashboards as the shared baseline. The merged build stays on Java 17 / Spring Boot
+   3.3.5 so the verified portable toolchain works.
+2. **Slice 3 report/photo use cases kept intact**, but its duplicate infrastructure
+   (own application class, security config, user details service, login controller and
+   user table) was removed in favour of the merged Slice 1 infrastructure.
+3. **FR-04 Inspector→Manager designation** is now held in the slice-owned
+   `inspector_designation` table; the shared `users` table stays owned by User and
+   Access Management. `project` collapsed into the shared `projects` table (`state`
+   replaces the old `closed` flag).
+4. **Theme/structure consistency:** report pages now use `fragments :: head` and
+   `fragments :: topbar`; `report-form.css` layers on the shared `app.css` tokens;
+   an INSPECTOR-only "New report" navlink was added to the shared topbar.
+5. **Team decisions carried forward:** photographs capped at 3 per violation, 10 MB
+   each, JPEG/PNG only; hazard/severity lists are configuration-driven and always
+   include **OTHER**; FR-44 snapshots on first submission; EC-12 double submission
+   blocked with a pessimistic-locked one-time token.
+6. **Remaining integration debt (not in this UI pass):** dashboard `reports` /
+   `notifications` model attributes are still unsupplied (Slices 3–5 wiring), and
+   `ddl-auto=update` is retained until the shared schema baseline includes the
+   Slice 3 tables.
 
 ## Changes from v02
 
@@ -100,21 +109,25 @@ behavior is stubbed with `TODO(MANAL)`; report-dependent behavior with `TODO(EMA
   (`countOpen`, `countPending`, `closeAllOpen`, `discardPending`). Interim default
   returns 0 / no-op with a loud `TODO(EMAN)` — closure works but the Flow 9.4 warnings
   show zero counts until the report module lands. Real report side-effects are Eman's.
-- **Auth gates:** `TODO(MANAL)` — server-side Admin-only enforcement required before
-  delivery (AGENTS.md §8; permission matrix §4: create/assign/close = Admin Yes only).
-- **Package:** `hse.reporting.project` is a temporary package pending alignment with
-  Manal's skeleton layout (flag if different).
+- **Auth gates — RESOLVED (v04):** `/projects/**` requires ROLE_ADMIN in
+  `SecurityConfig`, re-enforced in the service layer by `requireAdmin()` in every
+  `ProjectController` handler (AGENTS.md §8; permission matrix §4: create/assign/close =
+  Admin Yes only). Covered by `ProjectAccessIntegrationTest`.
+- **Package — RESOLVED (v04):** Mahad's module lives in the single flat package
+  `com.hse.reporting.projectmanagement` (root `com.hse.reporting` matches Manal's
+  `@SpringBootApplication` scan root; kept flat so the package-private test seams
+  `Project.setIdForTest()` and `new ProjectService(store, reports)` stay usable).
 
 ## 3. Vertical Slices
 
 | Slice | Name | Owner | Scope |
 |---|---|---|---|
-| 1 | Project Foundation & Authentication | Manal | Skeleton, schema baseline, Spring Security login, role + project-scope authorization (ADR-03). Minimal baseline added here for Slice 3; reconcile with Manal's version. |
-| 2 | Dashboard Interface | Mahad | Post-login landing page: role-based report lists (FR-14/15/16), rejection notifications (FR-42). **UI delivered** elsewhere; not present in this repo. |
-| 3 | Report Creation & Photo Evidence | Eman | **Implemented here** (unit tested): report form, project eligibility, single-incident + duplicate checks, photograph evidence, atomic submit with Pending Approval, version snapshot. |
+| 1 | Project Foundation & Authentication | Manal | Skeleton, schema baseline, Spring Security login, role + project-scope authorization (ADR-03). **Delivered and merged.** |
+| 2 | Dashboard Interface | Mahad | Post-login landing page: role-based report lists (FR-14/15/16), rejection notifications (FR-42). **UI delivered** inside Slice 1's role dashboards; data integration pending Slices 3/5. |
+| 3 | Report Creation & Photo Evidence | Eman | **Implemented and merged**: report form, project eligibility, single-incident + duplicate checks, photograph evidence, atomic submit with Pending Approval, version snapshot. |
 | 4 | Manager Approval & Rejection Workflow | Eman | Approve → Open (FR-09), reject with reason → Rejected + notification (FR-11, FR-42), edit/resubmit + versions (FR-43, FR-44). |
 | 5 | Report Visibility & Corrective Actions | — | Role-scoped report queries backing the dashboard lists (FR-14/15/16), corrective action CRUD while Open (FR-20, FR-21, FR-47). |
-| 6 | Project Management & Closure | **Mahad — IN PROGRESS** | Create project (FR-30), assign/reassign Manager email + unique names (FR-31, EC-36), close with Open warning (FR-32) / confirm auto-close (FR-33) / decline (FR-34), Pending discard warning (FR-35), post-closure read-only (FR-36). |
+| 6 | Project Management & Closure | **Mahad — delivered (merged)** | Create project (FR-30), assign/reassign Manager email + unique names (FR-31, EC-36), close with Open warning (FR-32) / confirm auto-close (FR-33) / decline (FR-34), Pending discard warning (FR-35), post-closure read-only (FR-36). |
 | 7 | Delete, Restore & Audit History | — | Delete → Deleted tab (FR-25), restore while project open (FR-26), audit actor/action/timestamp (FR-46), Admin-only audit view. |
 | 8 | Retention Purge | — | 3-month purge of ALL project data (FR-39, NFR-03). |
 
@@ -172,7 +185,8 @@ with the name in the message).
   metadata entity). Photograph access will inherit report authorization.
 - **Infrastructure:** JPA repositories, MySQL configuration, `data.sql` (dev profile seed
   only), local photograph directory (`hse.photos.directory`).
-- **New tables:** `app_user`, `project`, `safety_report`, `safety_violation`,
+- **New tables (after merge):** shared `users` / `projects` from Slice 1/6 plus
+  `inspector_designation` (FR-04), `safety_report`, `safety_violation`,
   `report_version`, `photograph_evidence`, `submission_token`.
 - **Verification:** JDK 17 + Maven 3.9 were installed and `mvn test` was run on
   27 Nov 2026: **14 tests passed, 0 failed** (compilation succeeded). Unit tests cover
@@ -189,19 +203,39 @@ with the name in the message).
 
 | Slice | Status |
 |---|---|
-| 1 — Foundation & Auth | Owned by Manal — in progress (per team). Minimal baseline added here for Slice 3; not a substitute for Manal's implementation. |
-| 2 — Dashboard Interface | **UI delivered** (dashboard.html, fragments/header.html, dashboard.css); data integration pending Slices 1/3/4/5 |
-| 3 — Report Creation & Photos | **Implemented here** (Eman's slice) — compiles; 14 unit tests pass; started against MySQL and end-to-end submission verified (27 Nov 2026) |
+| 1 — Foundation & Auth | **Delivered (Manal) and merged** — login, three role areas, deny-by-default security, demo seeds (her 32 tests) |
+| 2 — Dashboard Interface | **UI delivered (Mahad) and merged into Slice 1's dashboards** — Reports/Notifications cards render in `dashboard/admin|manager|inspector.html` with empty-state until Slices 3/5 wire the data; topbar now links Inspectors to `/reports/new` |
+| 3 — Report Creation & Photos | **Delivered (Eman) and merged** — 14 unit tests; end-to-end submission verified against MySQL (27 Nov 2026); pages restyled with the shared fragments/CSS |
 | 4 — Approval & Rejection | Not started (Eman) |
 | 5 — Visibility & Corrective Actions | Not started |
-| 6 — Project Management & Closure | **UI + module + tests delivered (Mahad)** — not runnable/compilable until Manal's skeleton (pom.xml) lands; report side-effects via port stub until Eman's module |
+| 6 — Project Management & Closure | **Delivered (Mahad) and merged** — now compilable/runnable on Slice 1's skeleton; report side-effects still via the `ProjectReportSummary` port stub until Eman's module |
 | 7 — Delete, Restore & Audit | Not started |
 | 8 — Retention Purge | Not started |
 
-**Overall:** Docs complete; Slice 2 UI and Slice 6 implementation reported elsewhere
-but absent from this repository. Slice 3 source has been added here together with the
-minimum Spring Boot/MySQL skeleton needed to host it. The code compiles, 14 unit tests
-pass, and the web application was started and exercised against a local MySQL instance.
+**Overall:** Slices 1 (Manal), 2 (Mahad), 3 (Eman) and 6 (Mahad) are now integrated in
+one application on branch `eman`. Slice 3's pages use the shared Slice 1 theme. The
+dashboard lists stay empty until the role-scoped query (Slices 3–5) supplies them; this
+integration pass was UI/structure only.
+
+### Dashboard model contract (Slice 2)
+
+Source of truth is the comment block in `templates/fragments.html` (copied verbatim in
+summary form here), which the merged role dashboards render via `fragments ::
+reportsCard` and `fragments :: notificationsCard`:
+
+| Attribute | Supplied by | Meaning |
+|---|---|---|
+| `currentUserEmail` / `currentUserRole` | `CurrentUserModelAdvice`, every request | Acting identity; role keys the card titles and nav visibility. |
+| `reports` | Application layer (Slices 3–5, **not yet supplied**) | **Already filtered** server-side to the acting role — presentation must not re-implement filtering (AGENTS.md §8): FR-14 Inspector → own reports only (pending, rejected+reason, Open, Closed); FR-15 Manager → reports of assigned projects only; FR-16 Admin → approved non-deleted Open + Closed across ALL projects, never Pending/Rejected (FR-12, AC-13). Fields used: `id, reference, project, incidentDate, location, status, rejectionReason` (nullable). |
+| `notifications` | Slice 4 (**not yet supplied**) | Rejection notifications for the OWNING Inspector only (FR-42, AC-12/AC-41). Fields used: `id, reportReference, reason, createdAt`. |
+
+While the report module is absent both attributes are simply not supplied — the cards
+render their empty state ("No reports to show." / "No notifications.").
+**TODO(EMAN, Slices 3–5):** supply `reports` (role-scoped query owned by Safety Report
+Management). **TODO(Slice 4):** supply `notifications`.
+Scope note: no statistics/charts — outside PRD scope (AGENTS.md §12.15).
+
+---
 
 ---
 

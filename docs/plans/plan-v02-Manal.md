@@ -1,8 +1,12 @@
-# Implementation Plan — v01
+# Implementation Plan — Current
 
-**Version:** v01
+**Version:** v01 (see `plan-v01.md` for this revision's snapshot)
 **Date:** 25 November 2026
 **Status:** Initial baseline
+
+> This is the current, living `plan.md`. When its content changes meaningfully, the prior
+> version is preserved as `plan-vNN.md` in this directory (zero-padded numbering) before
+> saving the new current version.
 
 ---
 
@@ -107,6 +111,6 @@ Full criteria live in `docs/PRD.md` §11 (AC-01…AC-41). Per-slice mapping:
 
 ---
 
-*This is a living artefact. Update it whenever sequencing, dependencies, scope, decisions,
-or implementation understanding changes, and preserve each meaningful version
-(`plan-v01.md`, `plan-v02.md`, …) in `docs/plans/`.*
+*Living artefact. Update whenever sequencing, dependencies, scope, decisions, or
+implementation understanding changes. Preserve every meaningful version as
+`plan-vNN.md` in `docs/plans/`.*

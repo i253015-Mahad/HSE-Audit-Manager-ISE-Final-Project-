@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: headWithSite('New project')}"></head>
+<body>
+
+<!--
+  Slice 6 — create project (FR-30, EC-36).
+  MODEL: optional `error`, optional `name` (re-filled input after a failed
+         submit); identity for the top bar comes from CurrentUserModelAdvice.
+  AUTH: Admin-only route (PRD §4, AC-33) — SecurityConfig + requireAdmin().
+-->
+
+<header th:replace="~{fragments :: topbar}"></header>
+
+<main class="page page-narrow">
+
+    <section class="page-heading">
+        <div>
+            <h1>New project</h1>
+            <p class="subtitle">Project names must be unique across the system (FR-31). The Manager is assigned right after creation.</p>
+        </div>
+    </section>
+
+    <!-- EC-36 — the message names the duplicated project -->
+    <div class="alert alert-error" th:if="${error != null}" th:text="${error}">
+        A project named "…" already exists.
+    </div>
+
+    <section class="card">
+        <form class="form" method="post" action="/projects/new"
+              th:action="@{/projects/new}">
+            <div class="field">
+                <label for="name">Project name</label>
+                <input type="text" id="name" name="name" required maxlength="200"
+                       placeholder="e.g. Tower B — Structural Works"
+                       th:value="${name != null ? name : ''}">
+                <p class="field-hint">Example error: <code>A project named "Tower B" already exists. Choose a different name.</code></p>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Create project</button>
+                <a class="btn" href="/projects" th:href="@{/projects}">Cancel</a>
+            </div>
+        </form>
+    </section>
+
+</main>
+
+<footer class="page-footer">
+    <p>HSE Safety Reporting System</p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Error')}"></head>
+<body>
+
+<header th:replace="~{fragments :: topbar}"></header>
+
+<main class="container narrow">
+    <section class="card">
+        <h1>Something went wrong</h1>
+        <p>The request could not be completed. Please go back and try again.</p>
+        <p><a th:href="@{/}">Back to my start page</a></p>
+    </section>
+</main>
+
+</body>
+</html>

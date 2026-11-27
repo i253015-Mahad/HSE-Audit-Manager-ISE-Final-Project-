@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: headWithSite('Projects')}"></head>
+<body>
+
+<!--
+  ============================================================================
+  Slice 6 — Project Management (see docs/plans/plan-v03-Mahad.md)
+  Scope: project list + create + assign/reassign Manager + close (FR-30…FR-36).
+
+  MODEL CONTRACT for ProjectController.list():
+    projects   : List<Project> — all projects (Admin scope, PRD §4)
+    currentUserEmail / currentUserRole : identity for the shared top bar,
+                                         published by CurrentUserModelAdvice
+    flashMessage : String      — optional one-off confirmation (flash)
+
+    Project fields used here : id, name, managerEmail (nullable until
+                               assigned), state (OPEN|CLOSED), closedAt
+
+  AUTH: /projects/** is Admin-only (PRD §4, AC-33) — enforced twice:
+      SecurityConfig URL rule + ProjectController.requireAdmin().
+  TODO(EMAN / Slices 3–4): report counts appear on the close page via the
+      ProjectReportSummary port (FR-32 / FR-35 warnings).
+  ============================================================================
+-->
+
+<header th:replace="~{fragments :: topbar}"></header>
+
+<main class="page">
+
+    <section class="page-heading heading-row">
+        <div>
+            <h1>Projects</h1>
+            <p class="subtitle">Create projects, assign one Manager each, and close projects when work is done.</p>
+        </div>
+        <!-- Display-only: the route itself is Admin-only server-side (AC-33) -->
+        <a class="btn btn-primary" href="/projects/new" th:href="@{/projects/new}">+ New project</a>
+    </section>
+
+    <div class="flash" th:if="${flashMessage != null}" th:text="${flashMessage}">
+        Confirmation message.
+    </div>
+
+    <section class="card" aria-labelledby="projects-title">
+        <div class="card-header">
+            <h2 id="projects-title">All projects</h2>
+            <span class="card-note">One Manager per project · names are unique</span>
+        </div>
+
+        <div class="table-wrap" th:if="${projects != null and !projects.isEmpty()}">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th scope="col">Project</th>
+                    <th scope="col">Manager</th>
+                    <th scope="col">State</th>
+                    <th scope="col">Closed at</th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="p : ${projects}">
+                    <td class="cell-ref" th:text="${p.name}">Project name</td>
+                    <td th:text="${p.managerEmail != null ? p.managerEmail : 'Not assigned yet'}">manager@example.com</td>
+                    <td>
+                        <span class="badge"
+                              th:classappend="${p.state.name() == 'OPEN' ? 'status-open' : 'status-closed'}"
+                              th:text="${p.state}">OPEN</span>
+                    </td>
+                    <td th:text="${p.closedAt != null ? p.closedAt : '—'}">—</td>
+                    <td class="cell-action">
+                        <!-- Actions are Admin-only server-side (requireAdmin) -->
+                        <a href="#" th:href="@{/projects/{id}/manager(id=${p.id})}"
+                           th:if="${p.isOpen()}">Assign / reassign Manager</a>
+                        <a href="#" th:href="@{/projects/{id}/close(id=${p.id})}"
+                           th:if="${p.isOpen()}">Close project</a>
+                        <span class="muted" th:unless="${p.isOpen()}">Read-only</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="empty-state" th:unless="${projects != null and !projects.isEmpty()}">
+            <p>No projects yet. Use <strong>New project</strong> to create one.</p>
+        </div>
+    </section>
+
+</main>
+
+<footer class="page-footer">
+    <p>HSE Safety Reporting System</p>
+</footer>
+
+</body>
+</html>
