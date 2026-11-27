@@ -2,24 +2,49 @@ spring:
   application:
     name: hse-reporting
 
-  # MySQL (ADR-04 / ADR-08). Override with HSE_DB_USER / HSE_DB_PASSWORD in non-development environments.
+  # MySQL (ADR-04 / ADR-08). Defaults target the local development server;
+  # override with HSE_DB_URL / HSE_DB_USER / HSE_DB_PASSWORD elsewhere.
   datasource:
-    url: jdbc:mysql://localhost:3306/hse_reporting?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-    username: ${HSE_DB_USER:hse}
-    password: ${HSE_DB_PASSWORD:hse-dev-pass}
+    url: ${HSE_DB_URL:jdbc:mysql://127.0.0.1:3306/hse_reporting?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${HSE_DB_USER:root}
+    password: ${HSE_DB_PASSWORD:}
 
-  # Schema baseline (schema.sql) and development seed data (data.sql) are the single source of truth.
+  # schema.sql (idempotent DDL) + data.sql (development seed) on every start.
   sql:
     init:
       mode: always
+      defer-datasource-initialization: true
 
   jpa:
     hibernate:
-      ddl-auto: validate   # never generate schema from entities; validate against schema.sql
+      ddl-auto: validate   # schema.sql is the single source of truth
     open-in-view: false
 
   thymeleaf:
     cache: false
+
+# Photographs live outside the database (ADR-06).
+hse:
+  photos:
+    directory: ${HSE_PHOTO_DIR:./data/photos}
+  # Example lists shown in the dropdowns; the team can replace them with
+  # HSE_HAZARD_CATEGORIES / HSE_SEVERITY_LEVELS (comma-separated) without code changes.
+  # The OTHER free-text option is always appended; its input appears only when selected.
+  form:
+    other-option: OTHER
+    hazard-categories:
+      - Working at height
+      - Slip/trip/fall
+      - Manual handling
+      - Electrical exposure
+      - Fire/explosion
+      - Chemical exposure
+      - Struck by moving object
+    severity-levels:
+      - Low
+      - Medium
+      - High
+      - Critical
 
 server:
   port: 8080

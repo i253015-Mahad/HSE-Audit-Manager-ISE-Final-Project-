@@ -1,0 +1,88 @@
+/* ============================================================
+   HSE Safety Reporting System — report form page styles (Slice 3)
+   Loads AFTER app.css (shared tokens, topbar, cards and buttons).
+   Only report-form-specific rules live here; typography, colours,
+   borders and the topbar come from the shared design system.
+   ============================================================ */
+
+.container > h1 {
+    margin-bottom: 0.2rem;
+}
+
+.container > .subtitle {
+    margin-top: 0;
+}
+
+.card h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1.15rem;
+    color: var(--brand);
+}
+
+.card h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+}
+
+.card .note {
+    margin: 0 0 0.75rem;
+}
+
+/* Conditional OTHER free-text fields are hidden until OTHER is selected. */
+.other-field {
+    display: none;
+}
+
+.other-field.is-visible {
+    display: block;
+}
+
+.container label {
+    display: block;
+    margin: 0.8rem 0 0.25rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.container input[type="text"],
+.container input[type="date"],
+.container input[type="time"],
+.container select,
+.container textarea {
+    width: 100%;
+    max-width: 40rem;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+}
+
+.container textarea {
+    min-height: 5rem;
+}
+
+.container input[type="file"] {
+    display: block;
+    max-width: 40rem;
+    padding: 0.4rem 0;
+    font: inherit;
+}
+
+.violation-row {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+}
+
+.field-error.alert {
+    display: block;
+    margin: 0.15rem 0 0;
+    font-size: 0.85rem;
+}
+
+.actions {
+    margin: 1.25rem 0 0;
+}

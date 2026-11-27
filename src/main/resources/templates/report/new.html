@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: headWithReport('New safety report')}"></head>
+<body>
+
+<header th:replace="~{fragments :: topbar}"></header>
+
+<main class="container">
+    <h1>Create a safety report</h1>
+    <p class="subtitle">Record one incident with its violations and photograph evidence.</p>
+
+    <div class="alert error" th:if="${formError}" th:text="${formError}">Refusal message</div>
+    <div class="alert error" th:if="${#fields.hasGlobalErrors()}"
+         th:each="globalError : ${#fields.globalErrors()}" th:text="${globalError}">Global error</div>
+
+    <form th:action="@{/reports}" th:object="${reportForm}" method="post"
+          enctype="multipart/form-data">
+        <input type="hidden" th:field="*{submissionToken}">
+
+        <section class="card">
+            <h2>Incident</h2>
+            <label for="project">Project</label>
+            <select id="project" th:field="*{projectId}">
+                <option value="">Select a project</option>
+                <option th:each="project : ${projects}"
+                        th:value="${project.id}" th:text="${project.name}"></option>
+            </select>
+            <span class="field-error alert error" th:if="${#fields.hasErrors('projectId')}" th:errors="*{projectId}"></span>
+
+            <label for="incidentDate">Incident date</label>
+            <input id="incidentDate" type="date" th:field="*{incidentDate}">
+            <span class="field-error alert error" th:if="${#fields.hasErrors('incidentDate')}" th:errors="*{incidentDate}"></span>
+
+            <label for="incidentTime">Incident time</label>
+            <input id="incidentTime" type="time" th:field="*{incidentTime}">
+            <span class="field-error alert error" th:if="${#fields.hasErrors('incidentTime')}" th:errors="*{incidentTime}"></span>
+
+            <label for="location">Location</label>
+            <input id="location" type="text" th:field="*{location}">
+            <span class="field-error alert error" th:if="${#fields.hasErrors('location')}" th:errors="*{location}"></span>
+
+            <label for="incidentType">Incident type</label>
+            <select id="incidentType" th:field="*{incidentType}">
+                <option value="">Select a type</option>
+                <option th:each="type : ${incidentTypes}" th:value="${type}"
+                        th:text="${type.name() == 'ACCIDENT' ? 'Accident' : 'Inspection finding'}"></option>
+            </select>
+            <span class="field-error alert error" th:if="${#fields.hasErrors('incidentType')}" th:errors="*{incidentType}"></span>
+        </section>
+
+        <section class="card">
+            <h2>Violations</h2>
+            <p class="note">All violations must belong to the incident above. One incident may have several violations.</p>
+            <div id="violations">
+                <div class="violation-row" th:each="violation, iter : *{violations}">
+                    <h3>Violation <span class="violation-number" th:text="${iter.index + 1}">1</span></h3>
+
+                    <label>Description
+                        <textarea th:field="*{violations[__${iter.index}__].description}"></textarea>
+                    </label>
+                    <span class="field-error alert error"
+                          th:if="${#fields.hasErrors('violations[' + iter.index + '].description')}"
+                          th:errors="*{violations[__${iter.index}__].description}"></span>
+
+                    <label>Hazard category
+                        <select class="choice-with-other" data-other-field="hazard"
+                                th:attr="data-other-value=${otherOption}"
+                                th:field="*{violations[__${iter.index}__].hazardCategory}">
+                            <option value="">Select a hazard category</option>
+                            <option th:each="category : ${hazardCategories}"
+                                    th:value="${category}" th:text="${category}"></option>
+                            <option th:value="${otherOption}"
+                                    th:text="${otherOption + ' (describe below)'}"></option>
+                        </select>
+                    </label>
+                    <span class="field-error alert error"
+                          th:if="${#fields.hasErrors('violations[' + iter.index + '].hazardCategory')}"
+                          th:errors="*{violations[__${iter.index}__].hazardCategory}"></span>
+
+                    <div class="other-field" data-other-field="hazard"
+                         th:classappend="${reportForm.violations[__${iter.index}__].hazardCategory == otherOption or #fields.hasErrors('violations[' + iter.index + '].hazardCategoryOther')} ? ' is-visible' : ''">
+                        <label>Other hazard category
+                            <input type="text" th:field="*{violations[__${iter.index}__].hazardCategoryOther}"
+                                   th:disabled="${reportForm.violations[__${iter.index}__].hazardCategory == otherOption or #fields.hasErrors('violations[' + iter.index + '].hazardCategoryOther')} ? null : 'disabled'">
+                        </label>
+                        <span class="field-error alert error"
+                              th:if="${#fields.hasErrors('violations[' + iter.index + '].hazardCategoryOther')}"
+                              th:errors="*{violations[__${iter.index}__].hazardCategoryOther}"></span>
+                    </div>
+
+                    <label>Severity level
+                        <select class="choice-with-other" data-other-field="severity"
+                                th:attr="data-other-value=${otherOption}"
+                                th:field="*{violations[__${iter.index}__].severityLevel}">
+                            <option value="">Select a severity level</option>
+                            <option th:each="level : ${severityLevels}"
+                                    th:value="${level}" th:text="${level}"></option>
+                            <option th:value="${otherOption}"
+                                    th:text="${otherOption + ' (describe below)'}"></option>
+                        </select>
+                    </label>
+                    <span class="field-error alert error"
+                          th:if="${#fields.hasErrors('violations[' + iter.index + '].severityLevel')}"
+                          th:errors="*{violations[__${iter.index}__].severityLevel}"></span>
+
+                    <div class="other-field" data-other-field="severity"
+                         th:classappend="${reportForm.violations[__${iter.index}__].severityLevel == otherOption or #fields.hasErrors('violations[' + iter.index + '].severityLevelOther')} ? ' is-visible' : ''">
+                        <label>Other severity level
+                            <input type="text" th:field="*{violations[__${iter.index}__].severityLevelOther}"
+                                   th:disabled="${reportForm.violations[__${iter.index}__].severityLevel == otherOption or #fields.hasErrors('violations[' + iter.index + '].severityLevelOther')} ? null : 'disabled'">
+                        </label>
+                        <span class="field-error alert error"
+                              th:if="${#fields.hasErrors('violations[' + iter.index + '].severityLevelOther')}"
+                              th:errors="*{violations[__${iter.index}__].severityLevelOther}"></span>
+                    </div>
+
+                    <label>Immediate action taken
+                        <textarea th:field="*{violations[__${iter.index}__].immediateAction}"></textarea>
+                    </label>
+
+                    <label>Photographs (max 3, JPEG or PNG, 10 MB each)
+                        <input type="file" multiple accept="image/jpeg,image/png"
+                               th:name="${'violations[' + iter.index + '].photos'}">
+                    </label>
+
+                    <button type="button" class="linklike remove-violation">Remove this violation</button>
+                </div>
+            </div>
+            <button type="button" class="button-link" id="add-violation">Add another violation</button>
+            <span class="field-error alert error" th:if="${#fields.hasErrors('violations')}" th:errors="*{violations}"></span>
+        </section>
+
+        <div class="actions">
+            <button class="primary" type="submit">Submit report</button>
+        </div>
+    </form>
+</main>
+
+</body>
+</html>

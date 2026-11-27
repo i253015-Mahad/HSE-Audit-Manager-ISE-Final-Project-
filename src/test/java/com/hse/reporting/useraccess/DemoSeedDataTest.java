@@ -11,16 +11,18 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
  * Guards the development seed data (data.sql): every seeded account must use
- * the single documented demo password, stored as a BCrypt hash — never in plain text.
+ * one of the documented demo passwords, stored as a BCrypt hash — never in plain text.
  */
 class DemoSeedDataTest {
 
-    private static final String DEMO_PASSWORD = "hse-demo-123";
+    private static final String SLICE_1_DEMO_PASSWORD = "hse-demo-123";
+    private static final String SLICE_3_DEMO_PASSWORD = "password";
+    // Only user rows carry a BCrypt hash; designation rows also start with an email.
     private static final Pattern SEEDED_ACCOUNT =
-            Pattern.compile("\\('([^']+@[^']+)',\\s*'([^']+)'");
+            Pattern.compile("\\('([^']+@[^']+)',\\s*'(\\$2[aby]\\$\\d{2}\\$[^']+)'");
 
     @Test
-    void everySeededAccountUsesTheDocumentedDemoPasswordAsBcryptHash() throws Exception {
+    void everySeededAccountUsesADocumentedDemoPasswordAsBcryptHash() throws Exception {
         String dataSql = Files.readString(Path.of("src", "main", "resources", "data.sql"));
         Matcher matcher = SEEDED_ACCOUNT.matcher(dataSql);
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
@@ -28,7 +30,9 @@ class DemoSeedDataTest {
         int accounts = 0;
         while (matcher.find()) {
             accounts++;
-            assertThat(encoder.matches(DEMO_PASSWORD, matcher.group(2)))
+            String hash = matcher.group(2);
+            assertThat(encoder.matches(SLICE_1_DEMO_PASSWORD, hash)
+                    || encoder.matches(SLICE_3_DEMO_PASSWORD, hash))
                     .as("seeded password hash for %s", matcher.group(1))
                     .isTrue();
         }

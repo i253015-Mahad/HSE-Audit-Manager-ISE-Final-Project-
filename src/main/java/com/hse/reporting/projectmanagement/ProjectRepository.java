@@ -16,6 +16,9 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
 
     List<Project> findAllByOrderByNameAsc();
 
+    /** Report creation (FR-04) reads only open projects handled by an Inspector's Manager. */
+    List<Project> findByManagerEmailAndState(String managerEmail, Project.State state);
+
     @Override
     Optional<Project> findById(Long id);
 
