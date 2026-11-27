@@ -35,7 +35,7 @@ projects, with role-based workflows for Inspectors, Managers, and Admin/HSE Engi
 | [`docs/architecture.md`](docs/architecture.md) | Working architecture baseline: layers, modules, data ownership, technology stack. |
 | [`docs/AGENTS.md`](docs/AGENTS.md) | Operating instructions for AI coding agents working in this repository. |
 | [`docs/HSE-Architecture-ADRs/`](docs/HSE-Architecture-ADRs/) | Architecture Decision Records (ADR-01…ADR-06, ADR-08). |
-| [`docs/plans/`](docs/plans/) | Living implementation plan (`plan.md`) with preserved version history (`plan-v01.md`, `plan-v02.md`, …). |
+| [`docs/plans/`](docs/plans/) | Living implementation plan (`plan.md`) with preserved per-author version history (`plan-v01-Mahad.md`, `plan-v02-Mahad.md`, … — each teammate versions under their own name). |
 
 ## Working with AI Agents
 

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Close project · HSE Safety Reporting System</title>
+    <link rel="stylesheet" th:href="@{/css/site.css}" href="../../static/css/site.css">
+    <link rel="stylesheet" th:href="@{/css/projects.css}" href="../../static/css/projects.css">
+</head>
+<body>
+
+<!--
+  Slice 6 — closure confirmation page, PRD flow 9.4 (FR-32…FR-35).
+  Two warnings before anything changes:
+    1. Open reports  → auto-closed on confirm (FR-32 / FR-33, AC-27)
+    2. Pending       → discarded on confirm (FR-35, AC-28)
+  Decline = FR-34: nothing changes at all.
+
+  MODEL: project, openCount (long), pendingCount (long).
+  Counts come from the ProjectReportSummary port — TODO(EMAN): real counts
+  until the report module lands (interim default returns 0).
+
+  TODO(MANAL): Admin-only route (PRD §4, AC-33).
+-->
+
+<header th:replace="~{fragments/header :: topbar}">
+    <div class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/dashboard">HSE Safety Reporting</a>
+            <nav class="main-nav" aria-label="Primary">
+                <a class="nav-link" href="/dashboard">Dashboard</a>
+                <a class="nav-link active" href="/projects" aria-current="page">Projects</a>
+            </nav>
+            <div class="user-area">
+                <span class="user-name">Signed-in user</span>
+                <span class="user-role-chip">Role</span>
+                <a class="btn-logout" href="/logout">Log out</a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="page page-narrow">
+
+    <section class="page-heading">
+        <div>
+            <h1>Close project</h1>
+            <p class="subtitle">
+                Review the warnings for
+                <strong th:text="${project != null ? project.name : '—'}">Project</strong>
+                before confirming. This cannot be undone.
+            </p>
+        </div>
+    </section>
+
+    <section class="card warning-card" aria-labelledby="warning-title">
+        <div class="card-header">
+            <h2 id="warning-title">⚠ Before you close</h2>
+            <span class="card-note">Flow 9.4 · confirm or decline</span>
+        </div>
+
+        <ul class="warning-list">
+            <!-- FR-32 / FR-33 / AC-27 -->
+            <li class="warning">
+                <span class="warning-count"
+                      th:text="${openCount}">0</span>
+                <span class="warning-text">
+                    <strong>Open report(s)</strong> in this project will be
+                    <strong>closed automatically</strong> when you confirm (FR-33).
+                </span>
+            </li>
+            <!-- FR-35 / AC-28 -->
+            <li class="warning">
+                <span class="warning-count"
+                      th:text="${pendingCount}">0</span>
+                <span class="warning-text">
+                    <strong>Pending Approval report(s)</strong> will be
+                    <strong>discarded</strong> when you confirm — they cannot be
+                    recovered afterwards (FR-35).
+                </span>
+            </li>
+            <li class="warning warning-info">
+                <span class="warning-count">3 mo</span>
+                <span class="warning-text">
+                    After closure no report can be created or changed (FR-36);
+                    all project data is purged after 3 months (FR-39).
+                </span>
+            </li>
+        </ul>
+
+        <div class="form-actions warning-actions">
+            <!-- FR-33 / FR-35 — confirm runs the full closure sequence -->
+            <form method="post" style="display:inline"
+                  th:action="@{/projects/{id}/close(id=${project.id})}">
+                <input type="hidden" name="confirm" value="true">
+                <button type="submit" class="btn btn-danger">
+                    Confirm close
+                </button>
+            </form>
+            <!-- FR-34 — decline changes nothing -->
+            <form method="post" style="display:inline"
+                  th:action="@{/projects/{id}/close(id=${project.id})}">
+                <input type="hidden" name="confirm" value="false">
+                <button type="submit" class="btn">Decline — keep it open</button>
+            </form>
+            <a class="btn" href="/projects" th:href="@{/projects}">Back to projects</a>
+        </div>
+    </section>
+
+</main>
+
+<footer class="page-footer">
+    <p>HSE Safety Reporting System</p>
+</footer>
+
+</body>
+</html>

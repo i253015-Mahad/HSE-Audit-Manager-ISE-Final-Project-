@@ -371,7 +371,7 @@ Summarize:
    - Dependencies
    - Acceptance Criteria (or explicit references to PRD criteria)
    - Current Slice Status
-3. **Mandatory History & Versioning:** `plan.md` is a living artefact. Update it whenever sequencing, dependencies, scope, decisions, or implementation understanding changes. Preserve every meaningful version using zero-padded versioning in `docs/plans/` (e.g., `plan-v01.md`, `plan-v02.md`, etc., alongside the current active `plan.md`).
+3. **Mandatory History & Versioning:** `plan.md` is a living artefact. Update it whenever sequencing, dependencies, scope, decisions, or implementation understanding changes. Preserve every meaningful version using zero-padded versioning **with the author's name in the filename** in `docs/plans/` (e.g., `plan-v01-Mahad.md`, `plan-v01-Manal.md`, `plan-v01-Eman.md`, etc., alongside the current active `plan.md`). Each team member keeps their own version line so parallel plans never collide; the shared current artefact remains `plan.md`.
 4. **Continuous Maintenance of README and Plan:** Actively maintain and refine `README.md` and `plan.md` as requirements and implementation progress.
 
 ## 16. Final Rule

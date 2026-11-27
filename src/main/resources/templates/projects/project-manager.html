@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager · HSE Safety Reporting System</title>
+    <link rel="stylesheet" th:href="@{/css/site.css}" href="../../static/css/site.css">
+    <link rel="stylesheet" th:href="@{/css/projects.css}" href="../../static/css/projects.css">
+</head>
+<body>
+
+<!--
+  Slice 6 — assign / reassign Manager (FR-31, FR-45; EC-10 second Manager
+  refused; BR-15 reassignment transfers pending approvals + report visibility).
+  MODEL: project (id, name, managerEmail, state), assigning (boolean —
+         true = first assignment, false = reassignment), optional `error`,
+         optional `managerEmail` (re-filled input after failed submit).
+  TODO(MANAL): Admin-only route (PRD §4, AC-33).
+  TODO(EMAN): pending-approval transfer happens in report visibility queries
+              when the Manager changes — project module only stores the email.
+-->
+
+<header th:replace="~{fragments/header :: topbar}">
+    <div class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/dashboard">HSE Safety Reporting</a>
+            <nav class="main-nav" aria-label="Primary">
+                <a class="nav-link" href="/dashboard">Dashboard</a>
+                <a class="nav-link active" href="/projects" aria-current="page">Projects</a>
+            </nav>
+            <div class="user-area">
+                <span class="user-name">Signed-in user</span>
+                <span class="user-role-chip">Role</span>
+                <a class="btn-logout" href="/logout">Log out</a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="page page-narrow">
+
+    <section class="page-heading">
+        <div>
+            <h1 th:text="${assigning ? 'Assign Manager' : 'Reassign Manager'}">Assign Manager</h1>
+            <p class="subtitle">
+                Project <strong th:text="${project != null ? project.name : '—'}">Project</strong>
+                — exactly one Manager at a time (FR-31, EC-10).
+            </p>
+        </div>
+    </section>
+
+    <div class="alert alert-error" th:if="${error != null}" th:text="${error}">
+        Error message.
+    </div>
+
+    <section class="card">
+        <div class="card-header">
+            <h2>Manager email</h2>
+            <span class="card-note"
+                  th:text="${assigning ? 'No Manager assigned yet'
+                                  : 'Current: ' + project.managerEmail}">
+                Current: manager@example.com
+            </span>
+        </div>
+
+        <form class="form" method="post"
+              th:action="@{/projects/{id}/manager(id=${project.id})}">
+            <div class="field">
+                <label for="managerEmail">Manager email</label>
+                <input type="email" id="managerEmail" name="managerEmail" required
+                       maxlength="200" placeholder="manager@example.com"
+                       th:value="${managerEmail != null ? managerEmail : ''}">
+                <p class="field-hint"
+                   th:if="${!assigning}">
+                    Replacing the Manager transfers pending approvals and existing
+                    reports to the new Manager; the previous Manager loses access (FR-31).
+                </p>
+                <p class="field-hint" th:if="${assigning}">
+                    A project can only have one Manager at a time — a second one is refused (EC-10).
+                </p>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary"
+                        th:text="${assigning ? 'Assign Manager' : 'Reassign Manager'}">
+                    Save
+                </button>
+                <a class="btn" href="/projects" th:href="@{/projects}">Cancel</a>
+            </div>
+        </form>
+    </section>
+
+</main>
+
+<footer class="page-footer">
+    <p>HSE Safety Reporting System</p>
+</footer>
+
+</body>
+</html>

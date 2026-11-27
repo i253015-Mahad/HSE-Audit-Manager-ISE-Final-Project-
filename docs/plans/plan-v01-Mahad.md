@@ -109,4 +109,4 @@ Full criteria live in `docs/PRD.md` §11 (AC-01…AC-41). Per-slice mapping:
 
 *This is a living artefact. Update it whenever sequencing, dependencies, scope, decisions,
 or implementation understanding changes, and preserve each meaningful version
-(`plan-v01.md`, `plan-v02.md`, …) in `docs/plans/`.*
+(`plan-v01-Mahad.md`, `plan-v02-Mahad.md`, …) in `docs/plans/`.*
