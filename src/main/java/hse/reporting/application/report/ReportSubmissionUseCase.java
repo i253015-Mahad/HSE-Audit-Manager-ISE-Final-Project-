@@ -3,6 +3,7 @@ package hse.reporting.application.report;
 import hse.reporting.application.ports.AuthorizationPort;
 import hse.reporting.application.ports.ProjectEligibilityPort;
 import hse.reporting.common.BusinessRuleException;
+import hse.reporting.photo.PhotoEvidenceQuery;
 import hse.reporting.photo.PhotoStore;
 import hse.reporting.photo.PhotoUpload;
 import hse.reporting.photo.PhotoValidator;
@@ -10,6 +11,7 @@ import hse.reporting.report.ObserverDetails;
 import hse.reporting.report.SafetyReport;
 import hse.reporting.report.SafetyReportRepository;
 import hse.reporting.report.SafetyReportService;
+import hse.reporting.report.SubmissionStatus;
 import hse.reporting.report.Violation;
 import hse.reporting.report.ViolationDraft;
 import hse.reporting.user.CurrentActorService;
@@ -23,7 +25,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Coordinates FR-01…FR-08 across the owning modules in one transaction. */
+/** Coordinates FR-01…FR-08 and FR-43 across the owning modules in one transaction. */
 @Service
 public class ReportSubmissionUseCase {
 
@@ -35,6 +37,7 @@ public class ReportSubmissionUseCase {
     private final SafetyReportRepository reports;
     private final PhotoValidator photoValidator;
     private final PhotoStore photoStore;
+    private final PhotoEvidenceQuery photoEvidence;
     private final SubmissionTokenRepository tokens;
 
     public ReportSubmissionUseCase(AuthorizationPort authorization,
@@ -45,6 +48,7 @@ public class ReportSubmissionUseCase {
                                    SafetyReportRepository reports,
                                    PhotoValidator photoValidator,
                                    PhotoStore photoStore,
+                                   PhotoEvidenceQuery photoEvidence,
                                    SubmissionTokenRepository tokens) {
         this.authorization = authorization;
         this.projectEligibility = projectEligibility;
@@ -54,6 +58,7 @@ public class ReportSubmissionUseCase {
         this.reports = reports;
         this.photoValidator = photoValidator;
         this.photoStore = photoStore;
+        this.photoEvidence = photoEvidence;
         this.tokens = tokens;
     }
 
@@ -92,19 +97,7 @@ public class ReportSubmissionUseCase {
         if (submittedViolations == null) {
             submittedViolations = List.of();
         }
-        List<ViolationDraft> drafts = submittedViolations.stream()
-            .map(violation -> new ViolationDraft(
-                violation.briefDescription(),
-                violation.observationHazard(),
-                violation.observationHazardOther(),
-                violation.riskRating(),
-                violation.riskRatingOther(),
-                violation.actionRecommended(),
-                violation.violatorName(),
-                violation.violatorBadgeNo(),
-                violation.violatorTitle(),
-                violation.taskIncharge()))
-            .toList();
+        List<ViolationDraft> drafts = toDrafts(submittedViolations);
 
         reportService.validate(command.observationDate(), command.location(), command.observationType(),
             drafts, null);
@@ -118,72 +111,103 @@ public class ReportSubmissionUseCase {
             command.location(), command.observationType(), drafts, submittedAt);
         SafetyReport saved = reports.saveAndFlush(report);
 
-        List<String> writtenFiles = new ArrayList<>();
-        try {
-            List<Violation> savedViolations = saved.getViolations();
-            for (int i = 0; i < savedViolations.size(); i++) {
-                List<PhotoUpload> photos = submittedViolations.get(i).photos();
-                if (photos == null) {
-                    continue;
-                }
-                for (PhotoUpload photo : photos) {
-                    writtenFiles.add(photoStore.store(savedViolations.get(i).getId(), photo).getStoredFileName());
-                }
-            }
-            }
+        // FR-44: the first immutable snapshot is taken at the moment of submission.
+        reportService.recordVersion(saved);
+
+        storePhotos(saved, submittedViolations);
+        return new ReportSubmissionResult(saved.getId(), false);
+    }
 
     /**
-     * Resubmit a rejected report (FR-43, AC-37, FR-06).
+     * Resubmit a rejected report (FR-43, AC-37, FR-06, FR-22).
      *
      * <p>Checks:
-     * • Actor is the owning Inspector
-     * • Report is REJECTED (only rejected reports are editable)
-     * • Full validation with duplicates check excluding self (FR-06)
-     * • Project is OPEN (FR-22)
+     * <ul>
+     *   <li>Actor is the owning Inspector (BR-06)</li>
+     *   <li>Report is REJECTED — no other state is editable (FR-43)</li>
+     *   <li>Project is OPEN and handled by the Inspector's Manager (FR-04/FR-22)</li>
+     *   <li>Full revalidation FR-02…FR-06 with {@code excludedReportId = reportId} (FR-06 excludes self)</li>
+     * </ul>
      *
-     * <p>Side effects:
-     * • New report version snapshot created (FR-44)
-     * • Old rejection reason retained
-     * • Status switches to PENDING_APPROVAL
+     * <p>Side effects: the SAME report row returns to Pending Approval with its
+     * observation identity and violations replaced in place (violation ids — and
+     * therefore their photographs — survive positionally), and a new version
+     * snapshot is recorded (FR-44). The stored rejection reason is retained but
+     * is only ever displayed while the report is Rejected.
      */
     @Transactional
     public ReportSubmissionResult resubmit(Long reportId, ReportSubmissionCommand command) {
-        Actor actor = actorContext.currentActor();
-
-        // Require role
-        if (actor.role() != Role.INSPECTOR) {
-            throw new AccessDeniedException("Only Inspectors can resubmit reports.");
+        String inspectorEmail = currentActor.email();
+        if (!authorization.canSubmitReport(inspectorEmail)) {
+            throw new AccessDeniedException("Only Safety Team Inspectors can edit and resubmit reports.");
         }
 
-        // Fetch the existing report
-        SafetyReport existingReport = reports.findByIdAndDeletedFalse(reportId)
-            .orElseThrow(() -> new IllegalArgumentException("Report not found"));
+        SafetyReport report = reports.findByIdAndDeletedFalse(reportId)
+            .orElseThrow(() -> new BusinessRuleException("This report no longer exists."));
 
-        // Validate ownership
-        if (!existingReport.getInspectorEmail().equals(actor.email())) {
-            throw new AccessDeniedException("You can only resubmit your own reports.");
+        if (!report.getInspectorEmail().equals(inspectorEmail)) {
+            throw new AccessDeniedException("You can only edit and resubmit your own reports.");
         }
 
-        // Validate state
-        if (existingReport.getSubmissionStatus() != hse.reporting.report.SubmissionStatus.REJECTED) {
-            throw new IllegalArgumentException(
-                "Cannot resubmit report in " + existingReport.getSubmissionStatus() + " status; only rejected reports can be edited.");
+        if (report.getSubmissionStatus() != SubmissionStatus.REJECTED) {
+            throw new BusinessRuleException(
+                "Only a rejected report can be edited and resubmitted; this report is "
+                    + report.getSubmissionStatus().name().toLowerCase().replace('_', ' ') + ".");
         }
 
-        // Check project eligibility
         ProjectEligibilityPort.Eligibility eligibility =
-            projectEligibility.check(actor.email(), command.projectId());
+            projectEligibility.check(inspectorEmail, command.projectId());
         if (!eligibility.allowed()) {
             throw new BusinessRuleException(eligibility.refusalMessage());
         }
 
-        // Validate form
         ObserverDetails observer = observers.requireCurrentObserver();
         List<ReportSubmissionCommand.ViolationSubmission> submittedViolations = command.violations();
         if (submittedViolations == null) {
             submittedViolations = List.of();
         }
-        List<ViolationDraft> drafts = submittedViolations.stream()
+        List<ViolationDraft> drafts = toDrafts(submittedViolations);
+
+        // FR-06: identical duplicate check excludes this very report.
+        reportService.validate(command.observationDate(), command.location(), command.observationType(),
+            drafts, reportId);
+
+        // Validate new photographs and hold the per-violation cap including the
+        // evidence the edit keeps (violations are retained positionally, so index i
+        // is the violation that already sits at index i).
+        List<Violation> retained = report.getViolations();
+        for (int index = 0; index < submittedViolations.size(); index++) {
+            List<PhotoUpload> uploads = submittedViolations.get(index).photos();
+            photoValidator.validate(uploads);
+            if (uploads != null && !uploads.isEmpty() && index < retained.size()) {
+                long alreadyStored = photoEvidence.countFor(retained.get(index).getId());
+                if (alreadyStored + uploads.size() > PhotoValidator.MAX_PHOTOS_PER_VIOLATION) {
+                    throw new BusinessRuleException("A violation can hold at most "
+                        + PhotoValidator.MAX_PHOTOS_PER_VIOLATION + " photographs.");
+                }
+            }
+        }
+
+        LocalDateTime submittedAt = LocalDateTime.now();
+        reportService.resubmit(report, new SafetyReportService.Resubmission(
+            command.projectId(), eligibility.managerEmail(), command.observationDate(),
+            command.observationTime(), command.location(), command.observationType(),
+            drafts, submittedAt));
+        SafetyReport saved = reports.saveAndFlush(report);
+
+        // FR-44: snapshot of the resubmitted (current) version.
+        reportService.recordVersion(saved);
+
+        storePhotos(saved, submittedViolations);
+        return new ReportSubmissionResult(saved.getId(), false);
+    }
+
+    // ------------------------------------------------------------------
+    // helpers
+    // ------------------------------------------------------------------
+
+    private List<ViolationDraft> toDrafts(List<ReportSubmissionCommand.ViolationSubmission> submittedViolations) {
+        return submittedViolations.stream()
             .map(violation -> new ViolationDraft(
                 violation.briefDescription(),
                 violation.observationHazard(),
@@ -196,49 +220,26 @@ public class ReportSubmissionUseCase {
                 violation.violatorTitle(),
                 violation.taskIncharge()))
             .toList();
+    }
 
-        // Validate against existing violations (excluding self for duplicates check)
-        reportService.validate(command.observationDate(), command.location(), command.observationType(),
-            drafts, reportId);
-
-        // Validate photos
-        for (ReportSubmissionCommand.ViolationSubmission violation : submittedViolations) {
-            photoValidator.validate(violation.photos());
-        }
-
-        LocalDateTime submittedAt = LocalDateTime.now();
-
-        // Create new report from the rejected one (preserves Inspector/Observer)
-        SafetyReport newReport = reportService.createReport(command.projectId(),
-            existingReport.getInspectorEmail(), observer,
-            existingReport.getManagerEmail(), command.observationDate(), command.observationTime(),
-            command.location(), command.observationType(), drafts, submittedAt);
-
-        // Save the new version
-        SafetyReport saved = reports.saveAndFlush(newReport);
-
-        // Store photos
+    /** Writes the photographs of a (re)submission, rolling back written files if storage fails. */
+    private void storePhotos(SafetyReport saved,
+                             List<ReportSubmissionCommand.ViolationSubmission> submittedViolations) {
+        List<Violation> savedViolations = saved.getViolations();
         List<String> writtenFiles = new ArrayList<>();
         try {
-            List<hse.reporting.report.Violation> savedViolations = saved.getViolations();
-            for (int i = 0; i < savedViolations.size(); i++) {
-                List<PhotoUpload> photos = submittedViolations.get(i).photos();
-                if (photos == null) {
+            for (int index = 0; index < savedViolations.size() && index < submittedViolations.size(); index++) {
+                List<PhotoUpload> uploads = submittedViolations.get(index).photos();
+                if (uploads == null) {
                     continue;
                 }
-                for (PhotoUpload photo : photos) {
-                    writtenFiles.add(photoStore.store(savedViolations.get(i).getId(), photo).getStoredFileName());
+                for (PhotoUpload upload : uploads) {
+                    writtenFiles.add(photoStore.store(savedViolations.get(index).getId(), upload).getStoredFileName());
                 }
             }
-            // Record version for both the rejected report (FR-44) and the new one
-            reportService.recordVersion(existingReport);
-            reportService.recordVersion(saved);
-
-            return new ReportSubmissionResult(saved.getId(), false);
         } catch (RuntimeException failure) {
             writtenFiles.forEach(photoStore::deleteStoredFile);
             throw failure;
         }
     }
-
 }

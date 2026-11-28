@@ -1,8 +1,6 @@
 package com.hse.reporting.useraccess.web;
 
 import com.hse.reporting.application.DashboardUseCase;
-import com.hse.reporting.application.DashboardUseCase.AdminDashboard;
-import com.hse.reporting.application.DashboardUseCase.ManagerDashboard;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,27 +23,25 @@ public class DashboardController {
 
     @GetMapping("/inspector")
     public String inspector(Model model) {
-        com.hse.reporting.application.DashboardUseCase.InspectorDashboard dashboard =
-            dashboardUseCase.inspectorDashboard();
+        DashboardUseCase.InspectorDashboard dashboard = dashboardUseCase.inspectorDashboard();
         model.addAttribute("reports", dashboard.reports());
+        model.addAttribute("notifications", dashboard.notifications());
         return "dashboard/inspector";
     }
 
     @GetMapping("/manager")
     public String manager(Model model) {
-        com.hse.reporting.application.DashboardUseCase.ManagerDashboard dashboard =
-            dashboardUseCase.managerDashboard();
+        DashboardUseCase.ManagerDashboard dashboard = dashboardUseCase.managerDashboard();
         model.addAttribute("assignedProjects", dashboard.assignedProjects());
-        model.addAttribute("reports", dashboardUseCase.reports().listForManager());
+        model.addAttribute("reports", dashboard.reports());
         return "dashboard/manager";
     }
 
     @GetMapping("/admin")
     public String admin(Model model) {
-        com.hse.reporting.application.DashboardUseCase.AdminDashboard dashboard =
-            dashboardUseCase.adminDashboard();
+        DashboardUseCase.AdminDashboard dashboard = dashboardUseCase.adminDashboard();
         model.addAttribute("projects", dashboard.projects());
-        model.addAttribute("reports", dashboardUseCase.reports().listForAdmin());
+        model.addAttribute("reports", dashboard.reports());
         return "dashboard/admin";
     }
 }

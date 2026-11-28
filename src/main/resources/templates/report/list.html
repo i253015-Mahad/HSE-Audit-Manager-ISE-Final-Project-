@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: headWithSite('Reports')}"></head>
+<body>
+
+<header th:replace="~{fragments :: topbar}"></header>
+
+<main class="container">
+    <h1>Reports</h1>
+    <p class="subtitle"
+       th:text="${currentUserRole == 'INSPECTOR' ? 'Your reports (FR-14)'
+                : currentUserRole == 'MANAGER' ? 'Reports of your assigned projects (FR-15)'
+                : 'Approved reports across all projects (FR-16)'}">
+        Report visibility depends on your role
+    </p>
+
+    <!-- Filters are applied server-side inside ReportViewingUseCase after the
+         role-scoped query — they can only narrow the actor's own visibility. -->
+    <form class="card" th:action="@{/reports}" method="get">
+        <div class="filter-bar">
+            <label class="filter-label" for="status">Status</label>
+            <select id="status" name="status">
+                <option th:each="option : ${statusOptions}"
+                        th:value="${option.value}"
+                        th:text="${option.label}"
+                        th:selected="${option.value == selectedStatus}">All</option>
+            </select>
+
+            <label class="filter-label" for="projectId">Project</label>
+            <select id="projectId" name="projectId">
+                <option value="">All projects</option>
+                <option th:each="project : ${projectOptions}"
+                        th:value="${project.id}"
+                        th:text="${project.name}"
+                        th:selected="${selectedProjectId != null and project.id == selectedProjectId}">Project</option>
+            </select>
+
+            <label class="filter-label" for="incidentType">Incident type</label>
+            <select id="incidentType" name="incidentType">
+                <option value="">All types</option>
+                <option th:each="type : ${incidentTypes}"
+                        th:value="${type}"
+                        th:text="${type.name() == 'ACCIDENT' ? 'Accident' : 'Inspection finding'}"
+                        th:selected="${selectedIncidentType != null and type.name() == selectedIncidentType}">Type</option>
+            </select>
+
+            <label class="filter-label" for="severity">Severity of incident</label>
+            <select id="severity" name="severity">
+                <option value="">All severities</option>
+                <option th:each="rating : ${riskRatings}"
+                        th:value="${rating}" th:text="${rating}"
+                        th:selected="${selectedSeverity != null and selectedSeverity == rating}">Rating</option>
+                <option th:value="${otherOption}" th:text="${otherOption}"
+                        th:selected="${selectedSeverity != null and selectedSeverity == otherOption}">OTHER</option>
+            </select>
+
+            <button class="primary" type="submit">Apply filters</button>
+            <a class="button-link" th:href="@{/reports}">Reset</a>
+        </div>
+    </form>
+
+    <!-- Same columns and badge classes as the shared dashboard reportsCard
+         fragment (plan.md section 7). -->
+    <section class="card">
+        <div class="card-header">
+            <h2>Report list</h2>
+            <span class="card-note" th:text="${#lists.size(reports)} + ' report(s)'">0 report(s)</span>
+        </div>
+
+        <div class="table-wrap" th:if="${!reports.isEmpty()}">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th scope="col">Ref</th>
+                    <th scope="col">Project</th>
+                    <th scope="col">Incident date</th>
+                    <th scope="col">Location</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Rejection reason</th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="report : ${reports}">
+                    <td class="cell-ref" th:text="${report.reference}">RPT-0001</td>
+                    <td th:text="${report.project}">Project name</td>
+                    <td th:text="${report.incidentDate}">25 Nov 2026</td>
+                    <td th:text="${report.location}">Site location</td>
+                    <td>
+                        <span class="badge"
+                              th:if="${report.status != null}"
+                              th:classappend="${report.statusClass}"
+                              th:text="${report.status}">Open</span>
+                        <span class="badge" th:unless="${report.status != null}">—</span>
+                    </td>
+                    <td class="cell-reason"
+                        th:text="${report.rejectionReason != null ? report.rejectionReason : '—'}">—</td>
+                    <td class="cell-action">
+                        <a th:href="@{/reports/{id}(id=${report.id})}">View</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="empty-state" th:if="${reports.isEmpty()}">
+            <p>No reports match the current selection.</p>
+        </div>
+    </section>
+</main>
+
+</body>
+</html>

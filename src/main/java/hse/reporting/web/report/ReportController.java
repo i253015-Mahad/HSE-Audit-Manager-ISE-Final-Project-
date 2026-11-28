@@ -1,17 +1,27 @@
 package hse.reporting.web.report;
 
+import com.hse.reporting.useraccess.access.AuthorizationDeniedException;
 import hse.reporting.application.project.ProjectSelectionQuery;
 import hse.reporting.application.report.ObserverProfileQuery;
+import hse.reporting.application.report.ReportDecisionUseCase;
+import hse.reporting.application.report.ReportFilter;
 import hse.reporting.application.report.ReportSubmissionCommand;
 import hse.reporting.application.report.ReportSubmissionResult;
 import hse.reporting.application.report.ReportSubmissionUseCase;
 import hse.reporting.application.report.ReportViewingUseCase;
-import com.hse.reporting.common.BusinessRuleException;
+import hse.reporting.application.report.ReportViewingUseCase.Scope;
+import hse.reporting.common.BusinessRuleException;
 import hse.reporting.config.ReportOptions;
 import hse.reporting.photo.PhotoUpload;
+import hse.reporting.photo.PhotographEvidence;
 import hse.reporting.report.IncidentType;
 import hse.reporting.report.SafetyReport;
+import hse.reporting.report.SubmissionStatus;
+import hse.reporting.report.Violation;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -26,19 +36,25 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
+/**
+ * Report creation (Inspector), viewing with filters (FR-14/15/16), Manager
+ * decisions (FR-10/FR-11) and edit/resubmit of a rejected report (FR-43).
+ *
+ * <p>Visibility and state rules are decided in the use cases; this class only
+ * binds HTTP to them (ASR-01). URL-level role rules live in {@code SecurityConfig}.
+ */
 @Controller
 @RequestMapping("/reports")
 public class ReportController {
 
     private final ReportSubmissionUseCase submission;
     private final ReportViewingUseCase viewing;
+    private final ReportDecisionUseCase decision;
     private final ProjectSelectionQuery projects;
     private final ObserverProfileQuery observers;
     private final ReportFormValidator formValidator;
@@ -46,17 +62,23 @@ public class ReportController {
 
     public ReportController(ReportSubmissionUseCase submission,
                             ReportViewingUseCase viewing,
+                            ReportDecisionUseCase decision,
                             ProjectSelectionQuery projects,
                             ObserverProfileQuery observers,
                             ReportFormValidator formValidator,
                             ReportOptions options) {
         this.submission = submission;
         this.viewing = viewing;
+        this.decision = decision;
         this.projects = projects;
         this.observers = observers;
         this.formValidator = formValidator;
         this.options = options;
     }
+
+    // ------------------------------------------------------------------
+    // Creation — Inspector only (FR-01…FR-08; URL rules + use case both check)
+    // ------------------------------------------------------------------
 
     @GetMapping("/new")
     public String newForm(Model model) {
@@ -96,8 +118,15 @@ public class ReportController {
         return "report/submitted";
     }
 
+    // ------------------------------------------------------------------
+    // Listing with filters (FR-14/15/16)
+    // ------------------------------------------------------------------
+
     /**
-     * List reports with filtering (FR-14/15/16).
+     * The report table for the signed-in role. The five filters (status,
+     * project, Open/Closed, severity of incident, incident type) are applied
+     * server-side INSIDE the use case, after the role-scoped query — they can
+     * only narrow, never widen, what the actor may see.
      */
     @GetMapping
     public String list(@RequestParam(required = false) String status,
@@ -105,154 +134,156 @@ public class ReportController {
                        @RequestParam(required = false) String incidentType,
                        @RequestParam(required = false) String severity,
                        Model model) {
-        switch (viewing.currentScope()) {
-            case INSPECTOR:
-                model.addAttribute("reports", viewing.listForInspector());
-                break;
-            case MANAGER:
-                model.addAttribute("reports", viewing.listForManager());
-                break;
-            case ADMIN:
-                model.addAttribute("reports", viewing.listForAdmin());
-                break;
-        }
+        model.addAttribute("reports", viewing.list(new ReportFilter(status, projectId, incidentType, severity)));
+        model.addAttribute("statusOptions", viewing.statusOptions());
+        model.addAttribute("projectOptions", viewing.projectOptions());
+        model.addAttribute("incidentTypes", IncidentType.values());
+        model.addAttribute("riskRatings", options.getRiskRatings());
+        model.addAttribute("otherOption", options.getOtherOption());
 
-        // Get filter options
-        model.addAttribute("status", status);
-        model.addAttribute("projectId", projectId);
-        model.addAttribute("incidentType", incidentType);
-        model.addAttribute("severity", severity);
-
+        model.addAttribute("selectedStatus", status == null || status.isBlank() ? "ALL" : status);
+        model.addAttribute("selectedProjectId", projectId);
+        model.addAttribute("selectedIncidentType", incidentType);
+        model.addAttribute("selectedSeverity", severity);
         return "report/list";
     }
 
-    /**
-     * View report detail (FR-14/15/16, FR-44).
-     */
+    // ------------------------------------------------------------------
+    // Detail (FR-14/15/16, FR-44) and Manager decisions (FR-10/FR-11)
+    // ------------------------------------------------------------------
+
     @GetMapping("/{id}")
     public String detail(@PathVariable Long id, Model model) {
         SafetyReport report = viewing.detail(id);
-        model.addAttribute("report", report);
-        model.addAttribute("reference", generateReference(report.getId()));
-
-        // Version history
-        model.addAttribute("versions", viewing.versionsOf(id));
-
         Scope scope = viewing.currentScope();
-        model.addAttribute("scope", scope);
 
+        model.addAttribute("report", report);
+        model.addAttribute("reference", ReportViewingUseCase.reference(id));
+        model.addAttribute("projectName", viewing.projectName(report.getProjectId()));
+        model.addAttribute("scope", scope);
+        model.addAttribute("photos", viewing.photosOfReport(id));
+        model.addAttribute("versions", viewing.versionHistory(id));
+
+        // Rendering decisions only — the POST handlers re-check everything (ASR-01).
+        model.addAttribute("canDecide",
+            scope == Scope.MANAGER && report.getSubmissionStatus() == SubmissionStatus.PENDING_APPROVAL);
+        model.addAttribute("canEdit",
+            scope == Scope.INSPECTOR && report.getSubmissionStatus() == SubmissionStatus.REJECTED);
         return "report/detail";
     }
 
-    /**
-     * Edit rejected report (AC-37, FR-43).
-     */
-    @GetMapping("/{id}/edit")
-    public String editForm(@PathVariable Long id, Model model) {
-        SafetyReport report = viewing.detail(id);
-
-        // Only inspectors can edit
-        if (viewing.currentScope() != Scope.INSPECTOR || !report.getInspectorEmail().equals(viewing.actor().email())) {
-            throw new AccessDeniedException("You can only edit your own rejection reports.");
+    /** FR-10 / AC-11: Pending Approval → Open. */
+    @PostMapping("/{id}/approve")
+    public String approve(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+        try {
+            decision.approve(id);
+            redirectAttributes.addFlashAttribute("decisionSuccess",
+                "Report approved — it is now Open and visible to the HSE Engineer.");
+            return "redirect:/reports/" + id;
+        } catch (AuthorizationDeniedException | BusinessRuleException failure) {
+            return detailWithError(id, model, failure.getMessage());
         }
-
-        if (report.getSubmissionStatus() != hse.reporting.report.SubmissionStatus.REJECTED) {
-            throw new AccessDeniedException("Only rejected reports can be edited.");
-        }
-
-        // Populate form with report data
-        ReportForm form = convertToForm(report);
-        model.addAttribute("reportForm", form);
-        model.addAttribute("reportId", report.getId());
-        model.addAttribute("reference", generateReference(report.getId()));
-
-        return renderForm(form, model);
     }
 
-    /**
-     * Resubmit rejected report (FR-43, AC-37).
-     */
+    /** FR-11 / FR-42 / AC-12: Pending Approval → Rejected + reason + notification. */
+    @PostMapping("/{id}/reject")
+    public String reject(@PathVariable Long id,
+                         @RequestParam(name = "rejectReason", required = false) String rejectReason,
+                         Model model,
+                         RedirectAttributes redirectAttributes) {
+        try {
+            decision.reject(id, rejectReason);
+            redirectAttributes.addFlashAttribute("decisionSuccess",
+                "Report rejected — your reason was saved and the Inspector has been notified.");
+            return "redirect:/reports/" + id;
+        } catch (AuthorizationDeniedException | BusinessRuleException failure) {
+            return detailWithError(id, model, failure.getMessage());
+        }
+    }
+
+    private String detailWithError(Long id, Model model, String message) {
+        model.addAttribute("decisionError", message);
+        return detail(id, model);
+    }
+
+    // ------------------------------------------------------------------
+    // Edit & resubmit of a rejected report (FR-43, AC-37)
+    // ------------------------------------------------------------------
+
+    @GetMapping("/{id}/edit")
+    public String editForm(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+        SafetyReport report;
+        try {
+            report = viewing.editableReport(id);
+        } catch (AuthorizationDeniedException denial) {
+            throw denial; // → 403 page (AccessDeniedAdvice)
+        } catch (BusinessRuleException rule) {
+            // FR-43: only a rejected report is editable — send the reader back
+            // to the detail page instead of dead-ending on the form.
+            redirectAttributes.addFlashAttribute("decisionError", rule.getMessage());
+            return "redirect:/reports/" + id;
+        }
+        return renderEditForm(convertToForm(report), model, report);
+    }
+
     @PostMapping("/{id}/resubmit")
     public String resubmit(@PathVariable Long id,
                            @Valid @ModelAttribute("reportForm") ReportForm form,
                            BindingResult binding,
-                           Model model) {
+                           Model model,
+                           RedirectAttributes redirectAttributes) {
+        SafetyReport report;
+        try {
+            report = viewing.editableReport(id);
+        } catch (AuthorizationDeniedException denial) {
+            throw denial; // → 403 page (AccessDeniedAdvice)
+        } catch (BusinessRuleException rule) {
+            redirectAttributes.addFlashAttribute("decisionError", rule.getMessage());
+            return "redirect:/reports/" + id;
+        }
+
+        formValidator.validate(form, binding);
         if (binding.hasErrors()) {
-            return editForm(id, model);
+            if (form.getViolations().isEmpty()) {
+                form.getViolations().add(new ViolationForm());
+            }
+            return renderEditForm(form, model, report);
         }
 
         try {
-            // Update the submissionToken (The form has a hidden token field)
-            form.setSubmissionToken(submission.newSubmissionToken());
             ReportSubmissionResult result = submission.resubmit(id, toCommand(form));
-            model.addAttribute("reportId", result.reportId());
+            redirectAttributes.addFlashAttribute("reportId", result.reportId());
+            redirectAttributes.addFlashAttribute("duplicateSubmission", result.duplicateSubmission());
             return "redirect:/reports/submitted";
-        } catch (AccessDeniedException e) {
-            model.addAttribute("formError", e.getMessage());
-            binding.reject("resubmit", e.getMessage());
-            return editForm(id, model);
-        } catch (BusinessRuleException e) {
-            model.addAttribute("formError", e.getMessage());
-            binding.reject("resubmit", e.getMessage());
-            return editForm(id, model);
+        } catch (BusinessRuleException | AccessDeniedException failure) {
+            model.addAttribute("formError", failure.getMessage());
+            binding.reject("resubmit", failure.getMessage());
+            return renderEditForm(form, model, report);
         }
     }
 
-    /**
-     * Approve a pending report (FR-10).
-     */
-    @PostMapping("/{id}/approve")
-    public String approve(@PathVariable Long id) {
-        try {
-            submission.approveReport(id); // Need to check if this exists
-            return "redirect:/reports/" + id;
-        } catch (AccessDeniedException e) {
-            throw new AccessDeniedException("You do not have permission to approve this report.");
-        } catch (IllegalArgumentException e) {
-            throw new BusinessRuleException(e.getMessage());
-        }
-    }
+    // ------------------------------------------------------------------
+    // Photograph evidence (FR-44)
+    // ------------------------------------------------------------------
 
-    /**
-     * Reject a pending report with reason (FR-11, FR-42).
-     */
-    @PostMapping("/{id}/reject")
-    public String reject(@PathVariable Long id,
-                         @RequestParam String rejectReason,
-                         RedirectAttributes redirectAttributes) {
-        try {
-            submission.rejectReport(id, rejectReason);
-            redirectAttributes.addFlashAttribute("rejectSuccess", "Report rejected successfully.");
-            return "redirect:/reports/" + id;
-        } catch (AccessDeniedException e) {
-            throw new AccessDeniedException("You do not have permission to reject this report.");
-        } catch (IllegalArgumentException e) {
-            throw new BusinessRuleException(e.getMessage());
-        }
-    }
-
-    /**
-     * Get list of attached photos (FR-44).
-     */
-    @GetMapping("/{id}/photos")
-    public String photos(@PathVariable Long id, Model model) {
-        model.addAttribute("photos", viewing.photosOfReport(id));
-        return "report/photos";
-    }
-
-    /**
-     * Stream a photo (FR-44).
-     */
+    /** Streams the stored bytes; authorised as part of the fetch (report-scoped). */
     @GetMapping("/{id}/photos/{photoId}")
-    public String streamPhoto(@PathVariable Long id, @PathVariable Long photoId) {
-        Optional<hse.reporting.photo.PhotographEvidence> photo = viewing.photoOwnedBy(photoId, id);
-        if (photo.isEmpty()) {
-            throw new AccessDeniedException("Photo not found or access denied.");
+    public ResponseEntity<byte[]> streamPhoto(@PathVariable Long id, @PathVariable Long photoId) {
+        ReportViewingUseCase.PhotoResource photo = viewing.photo(id, photoId);
+        MediaType contentType = MediaType.APPLICATION_OCTET_STREAM;
+        try {
+            if (photo.contentType() != null && !photo.contentType().isBlank()) {
+                contentType = MediaType.parseMediaType(photo.contentType());
+            }
+        } catch (HttpMessageNotReadableException | IllegalArgumentException ignored) {
+            // unknown/absent type → octet-stream
         }
-        // In a real implementation, this would return the bytes directly
-        // For now, return to detail page
-        return "redirect:/reports/" + id;
+        return ResponseEntity.ok().contentType(contentType).body(photo.content());
     }
+
+    // ------------------------------------------------------------------
+    // form plumbing
+    // ------------------------------------------------------------------
 
     private String renderForm(ReportForm form, Model model) {
         var observer = observers.currentObserver();
@@ -278,9 +309,40 @@ public class ReportController {
         return "report/new";
     }
 
+    /** Edit mode: same form, plus reportId, rejection reason and stored photographs. */
+    private String renderEditForm(ReportForm form, Model model, SafetyReport report) {
+        model.addAttribute("reportId", report.getId());
+        model.addAttribute("reference", ReportViewingUseCase.reference(report.getId()));
+        model.addAttribute("rejectionReason", report.getRejectionReason());
+        model.addAttribute("existingPhotos", existingPhotosByIndex(report));
+        return renderForm(form, model);
+    }
+
     /**
-     * Convert SafetyReport to ReportForm for editing rejected reports.
+     * Stored photographs grouped by violation POSITION (the edit form keeps
+     * violations positionally, so index i is the same violation on re-render).
      */
+    private Map<Integer, List<PhotoItem>> existingPhotosByIndex(SafetyReport report) {
+        Map<Long, Integer> indexOfViolation = new HashMap<>();
+        List<Violation> violations = report.getViolations();
+        for (int index = 0; index < violations.size(); index++) {
+            indexOfViolation.put(violations.get(index).getId(), index);
+        }
+        Map<Integer, List<PhotoItem>> byIndex = new HashMap<>();
+        for (PhotographEvidence photo : viewing.photosOfReport(report.getId())) {
+            Integer index = indexOfViolation.get(photo.getViolationId());
+            if (index != null) {
+                byIndex.computeIfAbsent(index, key -> new ArrayList<>())
+                    .add(new PhotoItem(photo.getId(), photo.getOriginalFileName()));
+            }
+        }
+        return byIndex;
+    }
+
+    public record PhotoItem(Long id, String originalFileName) {
+    }
+
+    /** Populate the form from the stored report (rejection edit, FR-43). */
     private ReportForm convertToForm(SafetyReport report) {
         ReportForm form = new ReportForm();
         form.setSubmissionToken(submission.newSubmissionToken());
@@ -290,8 +352,7 @@ public class ReportController {
         form.setLocation(report.getLocation());
         form.setObservationType(report.getObservationType());
 
-        // Populate violations
-        for (var violation : report.getViolations()) {
+        for (Violation violation : report.getViolations()) {
             ViolationForm violationForm = new ViolationForm();
             violationForm.setBriefDescription(violation.getBriefDescription());
             violationForm.setObservationHazard(violation.getObservationHazard());
@@ -303,25 +364,9 @@ public class ReportController {
             violationForm.setViolatorBadgeNo(violation.getViolatorBadgeNo());
             violationForm.setViolatorTitle(violation.getViolatorTitle());
             violationForm.setTaskIncharge(violation.getTaskIncharge());
-
-            // Add photos
-            Map<Long, java.util.List<hse.reporting.photo.PhotographEvidence>> photoMap = new HashMap<>();
-            photoMap.put(violation.getId(), viewing.photosOfReport(report.getId()).stream()
-                .filter(p -> p.getViolationId().equals(violation.getId()))
-                .toList());
-            violationForm.setPhotosMap(photoMap);
-
             form.getViolations().add(violationForm);
         }
-
         return form;
-    }
-
-    /**
-     * Generate report reference (RPT-0001 format).
-     */
-    private String generateReference(Long reportId) {
-        return String.format("RPT-%04d", reportId);
     }
 
     private ReportSubmissionCommand toCommand(ReportForm form) {

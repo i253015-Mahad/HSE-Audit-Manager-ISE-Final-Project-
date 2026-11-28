@@ -54,9 +54,14 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/reports/new").hasRole(Role.INSPECTOR.name())
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/reports").hasRole(Role.INSPECTOR.name())
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/reports/submitted").hasRole(Role.INSPECTOR.name())
+                        // Manager decisions (FR-10/FR-11): approve/reject are Manager-only here
+                        // and re-checked per report (current project assignment + state) inside
+                        // ReportDecisionUseCase (ASR-01). Declared BEFORE the fallback below.
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/reports/*/approve", "/reports/*/reject").hasRole(Role.MANAGER.name())
                         // Report viewing is available to Inspector, Manager and Admin (FR-14/15/16).
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/reports", "/reports/*", "/reports/*/photos/*").hasAnyRole(Role.INSPECTOR.name(), Role.MANAGER.name(), Role.ADMIN.name())
-                        // Fallback for any other /reports/** paths (Inspector-only).
+                        // Fallback for any other /reports/** paths (Inspector-only: edit form,
+                        // resubmit POST) — deny-by-default for the roles above.
                         .requestMatchers("/reports/**").hasRole(Role.INSPECTOR.name())
                         // deny-by-default: everything else needs a signed-in user
                         .anyRequest().authenticated())

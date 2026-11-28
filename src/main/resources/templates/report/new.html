@@ -1,19 +1,30 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments :: headWithReport('Add Report')}"></head>
+<head th:replace="~{fragments :: headWithReport(${reportId != null} ? 'Edit Report' : 'Add Report')}"></head>
 <body>
 
 <header th:replace="~{fragments :: topbar}"></header>
 
 <main class="container sor-page">
-    <h1>Add Report</h1>
-    <p class="subtitle">Safety Observation Report (SOR)</p>
+    <h1 th:text="${reportId != null} ? 'Edit Report' : 'Add Report'">Add Report</h1>
+    <p class="subtitle"
+       th:if="${reportId == null}">Safety Observation Report (SOR)</p>
+    <p class="subtitle" th:if="${reportId != null}">
+        Resubmit rejected report <span th:text="${reference}">RPT-0001</span> for approval (FR-43)
+    </p>
+
+    <!-- Edit mode: the rejection reason that must be corrected (FR-11/FR-43) -->
+    <div class="alert error" th:if="${reportId != null}">
+        This report was rejected. Reason: <strong th:text="${rejectionReason}">reason</strong>
+        — correct the report below and resubmit it for a new approval decision.
+    </div>
 
     <div class="alert error" th:if="${formError}" th:text="${formError}">Refusal message</div>
     <div class="alert error" th:if="${#fields.hasGlobalErrors()}"
          th:each="globalError : ${#fields.globalErrors()}" th:text="${globalError}">Global error</div>
 
-    <form th:action="@{/reports}" th:object="${reportForm}" method="post"
+    <form th:action="${reportId != null} ? @{/reports/{id}/resubmit(id=${reportId})} : @{/reports}"
+          th:object="${reportForm}" method="post"
           enctype="multipart/form-data">
         <input type="hidden" th:field="*{submissionToken}">
 
@@ -245,6 +256,17 @@
                             <input type="file" multiple accept="image/jpeg,image/png"
                                    th:name="${'violations[' + iter.index + '].photos'}">
                         </label>
+                        <!-- Edit mode: photographs already stored for this observation (kept by FR-43) -->
+                        <div th:if="${existingPhotos != null and existingPhotos[iter.index] != null and !existingPhotos[iter.index].isEmpty()}">
+                            <p class="muted">Already attached:</p>
+                            <span th:each="stored : ${existingPhotos[iter.index]}">
+                                <a th:href="@{/reports/{id}/photos/{pid}(id=${reportId}, pid=${stored.id})}"
+                                   target="_blank" rel="noopener">
+                                    <img th:src="@{/reports/{id}/photos/{pid}(id=${reportId}, pid=${stored.id})}"
+                                         th:alt="${stored.originalFileName}" width="110" height="82" loading="lazy">
+                                </a>
+                            </span>
+                        </div>
                     </div>
 
                     <button type="button" class="linklike remove-violation" th:if="${iter.index > 0}">
@@ -259,7 +281,8 @@
         </section>
 
         <div class="actions right">
-            <button class="primary" type="submit">Submit report</button>
+            <button class="primary" type="submit"
+                    th:text="${reportId != null} ? 'Resubmit for approval' : 'Submit report'">Submit report</button>
         </div>
     </form>
 

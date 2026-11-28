@@ -1,11 +1,14 @@
 package com.hse.reporting.application;
 
-import com.hse.reporting.application.report.ReportViewingUseCase;
 import com.hse.reporting.projectmanagement.access.ProjectAccessQueries;
 import com.hse.reporting.projectmanagement.access.ProjectAccessQueries.ProjectSummary;
 import com.hse.reporting.useraccess.access.Actor;
 import com.hse.reporting.useraccess.access.AuthorizationService;
 import com.hse.reporting.useraccess.domain.Role;
+import hse.reporting.application.report.NotificationItem;
+import hse.reporting.application.report.ReportFilter;
+import hse.reporting.application.report.ReportListItem;
+import hse.reporting.application.report.ReportViewingUseCase;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -15,8 +18,10 @@ import org.springframework.stereotype.Service;
  *
  * <p>Coordinates: identifies the acting user ({@link ActorContext}),
  * invokes authorization ({@code AuthorizationService}) and gathers the
- * data the presentation layer is allowed to display. The presentation layer
- * never makes the access decision itself (ASR-01).
+ * data the presentation layer is allowed to display — the role-scoped
+ * report list (FR-14/15/16), and for Inspectors their rejection
+ * notifications (FR-42). The presentation layer never makes the access
+ * decision itself (ASR-01).
  */
 @Service
 public class DashboardUseCase {
@@ -37,37 +42,45 @@ public class DashboardUseCase {
     }
 
     /**
-     * Inspector landing page: sees their own reports (pending, rejected, Open, Closed).
+     * Inspector landing page: their own reports — pending, rejected, Open,
+     * Closed (FR-14) — plus their rejection notifications (FR-42).
      */
     public InspectorDashboard inspectorDashboard() {
         Actor actor = actorContext.currentActor();
         authorization.requireRole(actor, Role.INSPECTOR);
-        return new InspectorDashboard(reports.listForInspector());
+        return new InspectorDashboard(
+            reports.list(ReportFilter.NONE),
+            reports.myNotifications());
     }
 
     /**
      * Manager landing page: the projects assigned to this Manager only
-     * (ADR-03 — a Manager never sees projects they are not assigned to).
+     * (ADR-03 — a Manager never sees projects they are not assigned to),
+     * with the reports of those projects (FR-15).
      */
     public ManagerDashboard managerDashboard() {
         Actor actor = actorContext.currentActor();
         authorization.requireRole(actor, Role.MANAGER);
-        return new ManagerDashboard(projectAccess.projectsAssignedTo(actor.email()));
+        return new ManagerDashboard(
+            projectAccess.projectsAssignedTo(actor.email()),
+            reports.list(ReportFilter.NONE));
     }
 
-    /** Admin/HSE Engineer landing page: cross-project oversight (ASR-03). */
+    /** Admin/HSE Engineer landing page: approved reports across all projects (FR-16, ASR-03). */
     public AdminDashboard adminDashboard() {
         Actor actor = actorContext.currentActor();
         authorization.requireRole(actor, Role.ADMIN);
-        return new AdminDashboard(projectAccess.allProjects());
+        return new AdminDashboard(
+            projectAccess.allProjects(),
+            reports.list(ReportFilter.NONE));
     }
 
-    public record ManagerDashboard(List<ProjectSummary> assignedProjects) {
+    public record ManagerDashboard(List<ProjectSummary> assignedProjects, List<ReportListItem> reports) {
     }
 
-    public record AdminDashboard(List<ProjectSummary> projects) {
+    public record AdminDashboard(List<ProjectSummary> projects, List<ReportListItem> reports) {
     }
 
-    public record InspectorDashboard(List<com.hse.reporting.report.SafetyReport> reports) {
+    public record InspectorDashboard(List<ReportListItem> reports, List<NotificationItem> notifications) {
     }
 }

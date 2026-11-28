@@ -22,6 +22,11 @@ spring:
   thymeleaf:
     cache: false
 
+  # Photograph evidence is written outside the repo so tests never dirty ./data/photos.
+hse:
+  photos:
+    directory: ${java.io.tmpdir}/hse-photo-tests
+
 logging:
   level:
     org.hibernate.SQL: warn

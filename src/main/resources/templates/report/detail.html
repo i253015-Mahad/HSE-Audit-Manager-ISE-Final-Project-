@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: headWithSite('Report ' + ${reference})}"></head>
+<body>
+
+<header th:replace="~{fragments :: topbar}"></header>
+
+<main class="container">
+
+    <!-- Flash messages from approve/reject/resubmit -->
+    <div class="alert" th:if="${decisionSuccess}" th:text="${decisionSuccess}">Saved</div>
+    <div class="alert alert-error" th:if="${decisionError}" th:text="${decisionError}">Error</div>
+
+    <!-- Header: reference, status badge, progress (FR-09) -->
+    <section class="card">
+        <div class="card-header">
+            <h1 th:text="${reference}">RPT-0001</h1>
+            <span class="badge"
+                  th:classappend="${report.submissionStatus.name() == 'APPROVED'
+                      ? (report.progressStatus != null and report.progressStatus.name() == 'CLOSED' ? 'status-closed' : 'status-open')
+                      : (report.submissionStatus.name() == 'REJECTED' ? 'status-rejected' : 'status-pending-approval')}"
+                  th:text="${report.submissionStatus.name() == 'APPROVED'
+                      ? (report.progressStatus != null and report.progressStatus.name() == 'CLOSED' ? 'Closed' : 'Open')
+                      : (report.submissionStatus.name() == 'REJECTED' ? 'Rejected' : 'Pending Approval')}">Open</span>
+        </div>
+        <p class="detail-field"><strong>Progress:</strong>
+            <span th:if="${report.submissionStatus.name() == 'APPROVED'}"
+                  th:text="${report.progressStatus != null and report.progressStatus.name() == 'CLOSED' ? 'Closed' : 'Open'}">Open</span>
+            <span th:if="${report.submissionStatus.name() == 'PENDING_APPROVAL'}"
+                  class="muted">Not applicable — awaiting Manager approval</span>
+            <span th:if="${report.submissionStatus.name() == 'REJECTED'}"
+                  class="muted">Not applicable — awaiting Inspector revision</span>
+        </p>
+        <p class="detail-field"><strong>Project:</strong> <span th:text="${projectName}">Project name</span></p>
+        <p class="detail-field"><strong>Submitted:</strong> <span th:text="${report.submittedAt}">date</span></p>
+    </section>
+
+    <!-- Rejection banner (FR-11) — shown only while Rejected -->
+    <section class="card" th:if="${report.submissionStatus.name() == 'REJECTED'}">
+        <div class="card-header">
+            <h2>Rejected report</h2>
+            <span class="card-note">FR-11</span>
+        </div>
+        <p class="detail-field"><strong>Rejection reason:</strong>
+            <span th:text="${report.rejectionReason}">reason</span></p>
+        <div class="actions" th:if="${canEdit}">
+            <a class="btn primary" th:href="@{/reports/{id}/edit(id=${report.id})}">Edit &amp; resubmit</a>
+        </div>
+    </section>
+
+    <!-- Manager decision panel (FR-10 approve / FR-11 reject) — rendering only;
+         the POST handlers re-check role, assignment and state (ASR-01). -->
+    <section class="card" th:if="${canDecide}">
+        <div class="card-header">
+            <h2>Manager decision</h2>
+            <span class="card-note">Approve to Open, or reject with a reason</span>
+        </div>
+        <div class="actions">
+            <form class="inline" th:action="@{/reports/{id}/approve(id=${report.id})}" method="post">
+                <button class="primary" type="submit">Approve — move to Open</button>
+            </form>
+        </div>
+        <form class="reject-panel" th:action="@{/reports/{id}/reject(id=${report.id})}" method="post">
+            <label class="detail-field" for="rejectReason"><strong>Rejection reason (required)</strong>
+                <span class="muted"> — the owning Inspector is notified in-system (FR-42)</span>
+                <textarea id="rejectReason" name="rejectReason" required
+                          placeholder="Explain what must be corrected before this report can be accepted."></textarea>
+            </label>
+            <div class="actions right">
+                <button type="submit">Reject report</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Observer details (FR-07) -->
+    <section class="card">
+        <div class="card-header"><h2>Observer details</h2></div>
+        <p class="detail-field"><strong>Name:</strong> <span th:text="${report.observerName}">name</span></p>
+        <p class="detail-field"><strong>Badge No:</strong> <span th:text="${report.observerBadgeNo}">badge</span></p>
+        <p class="detail-field"><strong>Title:</strong> <span th:text="${report.observerTitle}">title</span></p>
+        <p class="detail-field"><strong>Company:</strong> <span th:text="${report.observerCompany}">company</span></p>
+        <p class="detail-field"><strong>Designated Manager:</strong> <span th:text="${report.managerEmail}">manager</span></p>
+    </section>
+
+    <!-- Observation details (FR-02…FR-05) -->
+    <section class="card">
+        <div class="card-header"><h2>Observation details</h2></div>
+        <p class="detail-field"><strong>Date:</strong> <span th:text="${report.observationDate}">date</span></p>
+        <p class="detail-field"><strong>Time:</strong> <span th:text="${report.observationTime}">time</span></p>
+        <p class="detail-field"><strong>Location / Area:</strong> <span th:text="${report.location}">location</span></p>
+        <p class="detail-field"><strong>Type:</strong>
+            <span th:text="${report.observationType.name() == 'ACCIDENT' ? 'Accident' : 'Inspection finding'}">Type</span>
+        </p>
+    </section>
+
+    <!-- Violations with photograph evidence (FR-07 / FR-44) -->
+    <section class="card" th:each="violation, iter : ${report.violations}">
+        <div class="card-header">
+            <h2 th:text="'Observation ' + ${iter.index + 1}">Observation 1</h2>
+            <span class="card-note" th:text="${violation.riskRating} + (${violation.riskRatingOther != null and violation.riskRatingOther != '' ? violation.riskRatingOther + ' ' : ''}) + 'risk'">risk</span>
+        </div>
+        <p class="detail-field"><strong>Brief description:</strong>
+            <span th:text="${violation.briefDescription}">description</span></p>
+        <p class="detail-field"><strong>Observation hazard:</strong>
+            <span th:text="${violation.observationHazard + (violation.observationHazardOther != null and violation.observationHazardOther != '' ? ' — ' + violation.observationHazardOther : '')}">hazard</span></p>
+        <p class="detail-field"><strong>Action recommended:</strong>
+            <span th:text="${violation.actionRecommended}">action</span></p>
+
+        <h4>Violator details</h4>
+        <p class="detail-field"><strong>Name:</strong> <span th:text="${violation.violatorName}">name</span></p>
+        <p class="detail-field"><strong>Badge No:</strong> <span th:text="${violation.violatorBadgeNo}">badge</span></p>
+        <p class="detail-field"><strong>Title:</strong> <span th:text="${violation.violatorTitle}">title</span></p>
+        <p class="detail-field"><strong>Task Incharge:</strong> <span th:text="${violation.taskIncharge}">task</span></p>
+
+        <h4>Photographs</h4>
+        <div class="photo-grid">
+            <th:block th:each="photo : ${photos}">
+                <a th:if="${photo.violationId == violation.id}" target="_blank" rel="noopener"
+                   th:href="@{/reports/{id}/photos/{pid}(id=${report.id}, pid=${photo.id})}">
+                    <img th:src="@{/reports/{id}/photos/{pid}(id=${report.id}, pid=${photo.id})}"
+                         th:alt="${photo.originalFileName}" loading="lazy">
+                    <span class="muted" th:text="${photo.originalFileName}">photo.jpg</span>
+                </a>
+            </th:block>
+            <p class="muted" th:unless="${#lists.size(photos.?[violationId == violation.id]) > 0}">No photographs attached.</p>
+        </div>
+    </section>
+
+    <!-- Version history (FR-44) — supplied only for Manager/Admin (Inspector sees current version) -->
+    <section class="card" th:if="${#lists.isNotEmpty(versions)}">
+        <div class="card-header">
+            <h2>Version history</h2>
+            <span class="card-note">Every submission and resubmission (FR-44)</span>
+        </div>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th scope="col">Version</th>
+                    <th scope="col">Submitted at</th>
+                    <th scope="col">Observation date</th>
+                    <th scope="col">Location</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Violations</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="version : ${versions}">
+                    <td th:text="'v' + ${version.versionNumber}">v1</td>
+                    <td th:text="${version.submittedAt}">timestamp</td>
+                    <td th:text="${version.observationDate}">date</td>
+                    <td th:text="${version.location}">location</td>
+                    <td th:text="${version.observationType.name() == 'ACCIDENT' ? 'Accident' : 'Inspection finding'}">type</td>
+                    <td>
+                        <ul class="version-violations">
+                            <li th:each="snapshot : ${version.violations}">
+                                <strong th:text="${snapshot.riskRating != null and snapshot.riskRating != '' ? snapshot.riskRating
+                                        : (snapshot.riskRatingOther != null and snapshot.riskRatingOther != '' ? snapshot.riskRatingOther : '—')}">risk</strong>
+                                <span th:text="${' — ' + snapshot.briefDescription}">description</span>
+                                <span class="muted"
+                                      th:if="${snapshot.violatorName != null and snapshot.violatorName != ''}"
+                                      th:text="${' · violator: ' + snapshot.violatorName}">violator</span>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="actions">
+        <a class="button-link" th:href="@{/reports}">Back to report list</a>
+    </div>
+</main>
+
+</body>
+</html>

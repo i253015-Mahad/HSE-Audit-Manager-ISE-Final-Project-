@@ -30,6 +30,13 @@ public interface SafetyReportRepository extends JpaRepository<SafetyReport, Long
                          @Param("briefDescription") String briefDescription);
 
     // ------------------------------------------------------------------
+    // State-scoped reads used by the decision flow (approve/reject/resubmit).
+    // ------------------------------------------------------------------
+
+    @EntityGraph(attributePaths = "violations")
+    Optional<SafetyReport> findByIdAndDeletedFalse(Long id);
+
+    // ------------------------------------------------------------------
     // Role-scoped reads (FR-14, FR-15, FR-16). Deleted reports are excluded
     // everywhere (FR-28). Violations are fetched eagerly because every list
     // applies the severity filter and every detail page renders them — a lazy

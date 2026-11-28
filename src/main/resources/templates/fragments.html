@@ -45,6 +45,9 @@
             <!-- Project Management (Slice 6) is Admin-only (PRD section 4); the link
                  is display-only — /projects/** is denied for other roles server-side. -->
             <a class="navlink" th:if="${currentUserRole == 'ADMIN'}" th:href="@{/projects}">Projects</a>
+            <!-- Report viewing with filters is available to all three roles (FR-14/15/16). -->
+            <a class="navlink" th:if="${currentUserRole != null and currentUserRole != ''}"
+               th:href="@{/reports}">Reports</a>
             <!-- The green role badge is the single role label and also returns the
                  user to their role dashboard; no duplicate plain-text dashboard link. -->
             <a class="badge role-badge" th:if="${currentUserRole == 'INSPECTOR'}" th:href="@{/inspector}">INSPECTOR</a>
@@ -88,12 +91,13 @@
                                  location, status, rejectionReason (nullable)
     Notification fields used   : id, reportReference, reason, createdAt
 
-    While the report module is absent both attributes are simply not supplied:
-    the cards render their empty state (docs/plans/plan.md section 7).
+    While a role has no visible reports the cards simply render their
+    empty state (docs/plans/plan.md section 7).
 
-  TODO(EMAN / Slices 3–5 — reports): supply `reports` via the application
-      layer (role-scoped query owned by Safety Report Management).
-  TODO(Slice 4 — rejection workflow): supply `notifications`.
+    Both attributes are supplied by the application layer since Slice 4:
+    `reports` via ReportViewingUseCase (role-scoped query owned by Safety
+    Report Management, FR-14/15/16) and `notifications` via the same use
+    case's rejection notifications (FR-42).
   ============================================================================
 -->
 
@@ -154,13 +158,12 @@
                 <td>
                     <span class="badge"
                           th:if="${report.status != null}"
-                          th:classappend="'status-' + #strings.replace(#strings.toLowerCase(report.status), ' ', '-')"
+                          th:classappend="${report.statusClass}"
                           th:text="${report.status}">Open</span>
                     <span class="badge" th:unless="${report.status != null}">—</span>
                 </td>
                 <td class="cell-reason"
                     th:text="${report.rejectionReason != null ? report.rejectionReason : '—'}">—</td>
-                <!-- TODO(EMAN): report detail view route when the report interface lands -->
                 <td class="cell-action">
                     <a href="#" th:href="@{/reports/{id}(id=${report.id})}">View</a>
                 </td>

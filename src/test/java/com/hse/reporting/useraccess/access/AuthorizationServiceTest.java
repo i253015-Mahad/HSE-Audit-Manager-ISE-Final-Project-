@@ -36,6 +36,11 @@ class AuthorizationServiceTest {
                 public List<ProjectSummary> allProjects() {
                     return List.of();
                 }
+
+                @Override
+                public List<ProjectSummary> projectsByIds(java.util.Collection<Long> ids) {
+                    return List.of();
+                }
             });
 
     // ---- role checks ------------------------------------------------------
