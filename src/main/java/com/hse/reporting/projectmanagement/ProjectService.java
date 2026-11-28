@@ -1,7 +1,9 @@
 package com.hse.reporting.projectmanagement;
 
+import com.hse.reporting.useraccess.access.ManagerDirectory;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,8 +16,9 @@ import org.springframework.stereotype.Service;
  * auto-close all Open reports, discard all Pending reports, then close the
  * project and stamp the retention clock (NFR-03).
  *
- * <p>Authorization (Admin-only) is enforced server-side by the presentation
- * layer once Spring Security lands — TODO(MANAL / Slice 1, AGENTS.md §8).
+ * <p>Authorization (Admin-only) is enforced server-side: SecurityConfig guards
+ * {@code /projects/**} and {@code ProjectController.requireAdmin()} re-checks
+ * each handler (AGENTS.md §8, ASR-01).
  */
 @Service
 public class ProjectService {
@@ -33,19 +36,26 @@ public class ProjectService {
     /** Fixed port for unit tests; {@code null} in production (uses the provider). */
     private final ProjectReportSummary fixedReportSummary;
 
+    /** Company account directory — a Manager email must be a MANAGER account (BR-19). */
+    private final ManagerDirectory managerDirectory;
+
     @Autowired
     public ProjectService(ProjectStore projects,
-                          ObjectProvider<ProjectReportSummary> reportSummary) {
+                          ObjectProvider<ProjectReportSummary> reportSummary,
+                          ManagerDirectory managerDirectory) {
         this.projects = projects;
         this.reportSummary = reportSummary;
         this.fixedReportSummary = null;
+        this.managerDirectory = managerDirectory;
     }
 
-    /** Test seam: use a fixed port implementation directly. */
-    ProjectService(ProjectStore projects, ProjectReportSummary reportSummary) {
+    /** Test seam: fixed port implementations directly. */
+    ProjectService(ProjectStore projects, ProjectReportSummary reportSummary,
+                   ManagerDirectory managerDirectory) {
         this.projects = projects;
         this.reportSummary = null;
         this.fixedReportSummary = reportSummary;
+        this.managerDirectory = managerDirectory;
     }
 
     private ProjectReportSummary reports() {
@@ -100,7 +110,12 @@ public class ProjectService {
             throw new ProjectValidationException(
                     "Project \"" + project.getName() + "\" has no Manager yet — assign one instead.");
         }
-        project.setManagerEmail(requireEmail(newManagerEmail, project));
+        String trimmed = newManagerEmail == null ? "" : newManagerEmail.trim();
+        if (trimmed.equalsIgnoreCase(project.getManagerEmail())) {
+            throw new ProjectValidationException("\"" + trimmed + "\" is already the Manager of \""
+                    + project.getName() + "\" — enter a different Manager's email to reassign.");
+        }
+        project.setManagerEmail(requireEmail(trimmed, project));
         return projects.save(project);
     }
 
@@ -137,6 +152,32 @@ public class ProjectService {
         return projects.findAll();
     }
 
+    /**
+     * Filtered project list for the Admin list page (GET {@code ?q=&state=}).
+     *
+     * <p>Display refinement only — never narrows authorization: the caller
+     * ({@code ProjectController.requireAdmin()}) has already decided access,
+     * and {@link #findAll()} stays available for unfiltered consumers.
+     * Blank text and an unparseable state simply mean "no restriction", so a
+     * hand-edited URL degrades to the full list instead of a 500.
+     */
+    public List<Project> findMatching(String query, String state) {
+        String text = query == null || query.isBlank() ? null : query.trim();
+        return projects.search(text, parseState(state));
+    }
+
+    /** {@code null} unless the value names a known state (case-insensitive for hand-edited URLs). */
+    private Project.State parseState(String state) {
+        if (state == null || state.isBlank()) {
+            return null;
+        }
+        try {
+            return Project.State.valueOf(state.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException unknown) {
+            return null;
+        }
+    }
+
     public Project get(Long projectId) {
         return projects.find(projectId)
                 .orElseThrow(() -> new ProjectNotFoundException(projectId));
@@ -158,7 +199,10 @@ public class ProjectService {
         if (trimmed.isEmpty()) {
             throw new ProjectValidationException("Manager email is required.");
         }
-        // TODO(MANAL / Slice 1): validate against the authenticated user directory once auth lands.
+        if (!managerDirectory.isManager(trimmed)) {
+            throw new ProjectValidationException("\"" + trimmed
+                    + "\" is not a registered Manager. Enter the email of an existing Manager (BR-19).");
+        }
         return trimmed;
     }
 }

@@ -1,7 +1,9 @@
 package com.hse.reporting.projectmanagement.data;
 
 import com.hse.reporting.projectmanagement.access.ProjectAccessQueries;
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -11,12 +13,11 @@ import org.springframework.stereotype.Repository;
  *
  * <p>Read-only and simple, so no repository abstraction is introduced yet
  * (ADR-02: repository layer only where database-access complexity justifies it).
- * Slice 5 adds the write-side project management use cases.
  */
 @Repository
 public class JdbcProjectAccessQueries implements ProjectAccessQueries {
 
-    private static final String PROJECT_COLUMNS = "p.id, p.name";
+    private static final String PROJECT_COLUMNS = "p.id, p.name, (p.state = 'OPEN') AS project_open";
 
     private final JdbcTemplate jdbc;
 
@@ -41,7 +42,7 @@ public class JdbcProjectAccessQueries implements ProjectAccessQueries {
                         + " FROM projects p"
                         + " WHERE p.manager_email = ?"
                         + " ORDER BY p.name",
-                (rs, rowNum) -> new ProjectSummary(rs.getLong("id"), rs.getString("name")),
+                JdbcProjectAccessQueries::toSummary,
                 managerEmail);
     }
 
@@ -49,6 +50,23 @@ public class JdbcProjectAccessQueries implements ProjectAccessQueries {
     public List<ProjectSummary> allProjects() {
         return jdbc.query(
                 "SELECT " + PROJECT_COLUMNS + " FROM projects p ORDER BY p.name",
-                (rs, rowNum) -> new ProjectSummary(rs.getLong("id"), rs.getString("name")));
+                JdbcProjectAccessQueries::toSummary);
+    }
+
+    @Override
+    public List<ProjectSummary> projectsByIds(Collection<Long> projectIds) {
+        if (projectIds == null || projectIds.isEmpty()) {
+            return List.of();
+        }
+        String placeholders = projectIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        Object[] ids = projectIds.toArray();
+        return jdbc.query(
+                "SELECT " + PROJECT_COLUMNS + " FROM projects p WHERE p.id IN (" + placeholders + ") ORDER BY p.name",
+                JdbcProjectAccessQueries::toSummary,
+                ids);
+    }
+
+    private static ProjectSummary toSummary(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        return new ProjectSummary(rs.getLong("id"), rs.getString("name"), rs.getBoolean("project_open"));
     }
 }

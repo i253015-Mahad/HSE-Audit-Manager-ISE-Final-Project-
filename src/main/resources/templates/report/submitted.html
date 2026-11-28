@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Report submitted')}"></head>
+<body>
+
+<header th:replace="~{fragments :: topbar}"></header>
+
+<main class="container">
+    <section class="card">
+        <h1>Report submitted</h1>
+        <p class="alert info" th:if="${duplicateSubmission}">This form had already been submitted; no second report was created.</p>
+        <p>Report <strong th:text="${reportId}">—</strong> is now <strong>Pending Approval</strong>.</p>
+        <p><a th:href="@{/reports/new}">Create another report</a> · <a th:href="@{/}">Back to dashboard</a></p>
+    </section>
+</main>
+
+</body>
+</html>

@@ -23,6 +23,17 @@
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <link rel="stylesheet" th:href="@{/css/projects.css}">
 </head>
+
+<!-- Head for the report-creation pages (Slice 3). The page CSS is a small layer
+     on top of the Slice 1 design system, so app.css loads first. -->
+<head th:fragment="headWithReport(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' · HSE Safety Reporting'">HSE Safety Reporting</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/report-form.css}">
+    <script defer th:src="@{/js/report-form.js}"></script>
+</head>
 <body>
 
 <!-- Shared top bar: shows only what the current role is allowed to reach.
@@ -31,14 +42,14 @@
     <nav class="topnav">
         <a class="brand" th:href="@{/}">HSE Safety Reporting</a>
         <div class="nav-right">
-            <a class="navlink" th:if="${currentUserRole == 'INSPECTOR'}" th:href="@{/inspector}">Inspector</a>
-            <a class="navlink" th:if="${currentUserRole == 'MANAGER'}" th:href="@{/manager}">Manager</a>
-            <a class="navlink" th:if="${currentUserRole == 'ADMIN'}" th:href="@{/admin}">Admin</a>
             <!-- Project Management (Slice 6) is Admin-only (PRD section 4); the link
                  is display-only — /projects/** is denied for other roles server-side. -->
             <a class="navlink" th:if="${currentUserRole == 'ADMIN'}" th:href="@{/projects}">Projects</a>
-            <span class="badge" th:if="${currentUserRole != null and currentUserRole != ''}"
-                  th:text="${currentUserRole}">ROLE</span>
+            <!-- The green role badge is the single role label and also returns the
+                 user to their role dashboard; no duplicate plain-text dashboard link. -->
+            <a class="badge role-badge" th:if="${currentUserRole == 'INSPECTOR'}" th:href="@{/inspector}">INSPECTOR</a>
+            <a class="badge role-badge" th:if="${currentUserRole == 'MANAGER'}" th:href="@{/manager}">MANAGER</a>
+            <a class="badge role-badge" th:if="${currentUserRole == 'ADMIN'}" th:href="@{/admin}">ADMIN</a>
             <span class="who" th:if="${currentUserRole != null and currentUserRole != ''}"
                   th:text="${currentUserEmail}">user@example.com</span>
             <form class="inline" th:if="${currentUserRole != null and currentUserRole != ''}"

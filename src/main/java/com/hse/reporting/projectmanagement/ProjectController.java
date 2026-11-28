@@ -18,7 +18,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  *
  * <p>Routes:
  * <ul>
- *   <li>GET  /projects               — project list</li>
+ *   <li>GET  /projects               — project list (optional ?q= text over
+ *       name/manager email and ?state= OPEN|CLOSED — display refinement only,
+ *       access stays Admin-only; ?partial=true returns just the results
+ *       fragment for live filtering)</li>
  *   <li>GET  /projects/new           — create form</li>
  *   <li>POST /projects/new           — create (FR-30, EC-36)</li>
  *   <li>GET  /projects/{id}/manager  — assign / reassign Manager form (FR-31)</li>
@@ -61,12 +64,29 @@ public class ProjectController {
         authorization.requireRole(actorContext.currentActor(), Role.ADMIN);
     }
 
+    /**
+     * Project list with optional display filters.
+     *
+     * <p>{@code partial=true} renders only the {@code results} fragment
+     * (table + empty state) for the live filter in {@code project-filter.js} —
+     * a presentation-only variant of the same route, same query and same
+     * access rule.
+     */
     @GetMapping
-    public String list(Model model) {
+    public String list(@RequestParam(value = "q", required = false) String q,
+                       @RequestParam(value = "state", required = false) String state,
+                       @RequestParam(value = "partial", defaultValue = "false") boolean partial,
+                       Model model) {
         requireAdmin();
-        List<Project> all = projects.findAll();
+        String text = q == null ? "" : q.trim();
+        String stateFilter = state == null ? "" : state.trim();
+        List<Project> all = projects.findMatching(text, stateFilter);
         model.addAttribute("projects", all);
-        return "projects/projects";
+        // Filter form state — echoed back so the URL, not the session, holds the filters.
+        model.addAttribute("filterQ", text);
+        model.addAttribute("filterState", stateFilter);
+        model.addAttribute("filterActive", !text.isEmpty() || !stateFilter.isEmpty());
+        return partial ? "projects/projects :: results" : "projects/projects";
     }
 
     @GetMapping("/new")

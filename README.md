@@ -19,58 +19,35 @@ projects, with role-based workflows for Inspectors, Managers, and Admin/HSE Engi
 
 | Layer | Choice |
 |---|---|
-| Language | Java |
-| Framework | Spring Boot |
-| Views | Thymeleaf (server-rendered HTML/CSS/JavaScript) |
-| Security | Spring Security (role + project-scope authorization) |
+| Language | Java 17 (merged build) |
+| Framework | Spring Boot 3.3.5 |
+| Views | Thymeleaf with the shared `fragments.html` layout + `app.css` theme |
+| Security | Spring Security (email login, role + project-scope authorization) |
 | Database | MySQL with Spring Data JPA |
 | Photo storage | Local filesystem (references stored in DB, ADR-06) |
 | Packaging | Single executable JAR |
 
 ## Build and Run
 
-Requirements: JDK 21 + Maven (installed under `D:\Mahad\Tools` on this machine).
-MySQL 8 is needed **only to run the app**; tests run against an in-memory H2 database
-and need neither.
+Requirements: **JDK 17** and **Maven 3.9+**. This machine has portable tools under
+`C:\Users\hp\AppData\Local\Temp\opencode\tools\` (JDK 17.0.21.1, Maven 3.9.9,
+MySQL 8.4.9). MySQL is needed **only to run the app**; `mvn test` uses in-memory H2.
+
+### 1. Database
+
+Start the portable MySQL server (database `hse_reporting`):
 
 ```powershell
-# Environment (this machine's install locations)
-$env:JAVA_HOME = 'D:\Mahad\Tools\jdk-21'   # Temurin JDK 21.0.13.1+2
-$env:PATH      = "D:\Mahad\Tools\jdk-21\bin;D:\Mahad\Tools\maven\bin;$env:PATH"   # Maven 3.9.16
+mysqld --defaults-file=C:\Users\hp\AppData\Local\Temp\opencode\tools\mysql\my.ini --console
 ```
 
-### 1. Database (only for `mvn spring-boot:run`)
+The merged application uses `root` with an empty local development password by default.
+Override with `HSE_DB_URL` / `HSE_DB_USERNAME` / `HSE_DB_PASSWORD` if you use the
+partners' MySQL instance or their `hse` / `hse-dev-pass` account instead.
 
-MySQL 8.4 LTS runs **portably from this machine** — binaries and data both under
-`D:\Mahad\Tools`, nothing installed system-wide:
-
-| Item | Location |
-|---|---|
-| Server binaries | `D:\Mahad\Tools\mysql-8.4.13.1-winx64\` |
-| Data directory | `D:\Mahad\Tools\mysql-data\` (database `hse_reporting`) |
-| Start helper | `D:\Mahad\Tools\start-mysql.ps1` |
-
-```powershell
-# start (initializes the data dir automatically on first run on a new machine)
-powershell -ExecutionPolicy Bypass -File D:\Mahad\Tools\start-mysql.ps1
-
-# stop when finished
-& 'D:\Mahad\Tools\mysql-8.4.13.1-winx64\bin\mysqladmin.exe' -u root shutdown
-```
-
-One-time database/user setup (already done on this machine; repeat elsewhere after the
-first `start-mysql.ps1` run):
-
-```sql
-CREATE DATABASE hse_reporting CHARACTER SET utf8mb4;
-CREATE USER 'hse'@'localhost' IDENTIFIED BY 'hse-dev-pass';
-GRANT ALL PRIVILEGES ON hse_reporting.* TO 'hse'@'localhost';
-```
-
-Connection settings live in `src/main/resources/application.yml` (override with
-`HSE_DB_USER` / `HSE_DB_PASSWORD` env vars). On every start Spring runs
-`schema.sql` (idempotent DDL) and `data.sql` (demo seeds); Hibernate only
-**validates** entities against the schema (`ddl-auto: validate`).
+On startup Spring runs `schema.sql` (idempotent DDL, now including the SOR report/photo,
+observer-profile and designation tables) and `data.sql` (demo seeds). Hibernate runs with
+`ddl-auto=validate`, so entities are checked against the schema rather than generating DDL.
 
 ### 2. Run the application
 
@@ -78,23 +55,49 @@ Connection settings live in `src/main/resources/application.yml` (override with
 mvn spring-boot:run
 ```
 
-Open <http://localhost:8080/login>.
+Open <http://127.0.0.1:8080/login>.
 
-### 3. Demo accounts (development seed, password `hse-demo-123`)
+### 3. Demo accounts (development seeds)
 
-| Email | Role | Scope |
-|---|---|---|
-| `manal12cf@gmail.com` | Admin | All projects (cross-project oversight) |
-| `mahadwaqas28@gmail.com` | Manager | Head Office Fit-Out only |
-| `i253172@nu.edu.pk` | Inspector | Own reports only (Slice 2+) |
-| `extra.manager@hse.local` | Manager | Warehouse Extension only |
-| `extra.inspector@hse.local` | Inspector | — |
+| Email | Role | Password | Notes |
+|---|---|---|---|
+| `manal12cf@gmail.com` | Admin | `hse-demo-123` | Slice 1 demo account |
+| `mahadwaqas28@gmail.com` | Manager | `hse-demo-123` | Manager of Head Office Fit-Out |
+| `i253172@nu.edu.pk` | Inspector | `hse-demo-123` | Designated to `mahadwaqas28@gmail.com` |
+| `inspector@hse.test` | Inspector | `password` | Slice 3 report-creation account |
+| `manager@hse.test` | Manager | `password` | Manager of Sample Site |
+| `admin@hse.test` | Admin | `password` | Slice 3 admin account |
 
-### 4. Tests
+The seeded Inspector accounts also have `observer_profile` rows that auto-fill the
+SOR Name / Badge No / Title / Company fields.
+
+### 4. Browser preview and testing
+
+1. Sign in as `inspector@hse.test` / `password`. The login page uses the shared
+   login-card design.
+2. The Inspector dashboard shows the shared topbar (brand, role badge, email, log out)
+   and a **+ New report** button at the top-right; click it to open `/reports/new`.
+3. On the **Add Report** form, verify the same topbar/card styling and the SOR sections:
+   SOR Details, Observer Details (auto-filled from the signed-in Inspector's profile),
+   Observation Details (date/time/location/type shared by every observation), each
+   observation's Observation Hazard / Risk Rating and Violator Details, then Images.
+   Select **OTHER** in either configured list to reveal and complete its free-text field.
+   Choose a project to auto-fill the Manager; add another observation for extra violations.
+   Attach JPEG/PNG images (max 3, 10 MB each) and submit. Override the lists with
+   `HSE_OBSERVATION_HAZARDS` and `HSE_RISK_RATINGS` if the team supplies different values.
+4. The submitted page confirms the report is **Pending Approval** in the shared
+   styling. Reloading/re-submitting the token shows the duplicate-submission warning
+   without creating a second report.
+5. Log out and sign in as `manal12cf@gmail.com` / `hse-demo-123` to check the Admin
+   dashboard and `/projects` pages still render with the same theme.
+
+### 5. Tests
 
 ```powershell
 mvn test          # uses an in-memory H2 database (test profile), no MySQL needed
 ```
+
+The merged suite currently has **78 tests, 0 failures**.
 
 ## Documentation
 
@@ -104,7 +107,7 @@ mvn test          # uses an in-memory H2 database (test profile), no MySQL neede
 | [`docs/architecture.md`](docs/architecture.md) | Working architecture baseline: layers, modules, data ownership, technology stack. |
 | [`docs/AGENTS.md`](docs/AGENTS.md) | Operating instructions for AI coding agents working in this repository. |
 | [`docs/HSE-Architecture-ADRs/`](docs/HSE-Architecture-ADRs/) | Architecture Decision Records (ADR-01…ADR-06, ADR-08). |
-| [`docs/plans/`](docs/plans/) | Living implementation plan (`plan.md`) with preserved per-author version history (`plan-v01-Mahad.md` … `plan-v03-Mahad.md`, `plan-v02-Manal.md` — each teammate versions under their own name). |
+| [`docs/plans/`](docs/plans/) | Living implementation plan (`plan.md`) with preserved per-author version history (`plan-v01-Mahad.md` … `plan-v03-Mahad.md`, `plan-v02-Manal.md`, `plan-v04-Eman.md`). |
 
 ## Working with AI Agents
 

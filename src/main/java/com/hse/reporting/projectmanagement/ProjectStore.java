@@ -16,4 +16,7 @@ public interface ProjectStore {
     Project save(Project project);
 
     java.util.List<Project> findAll();
+
+    /** Filtered listing for the Admin project list (text over name/manager + optional state). */
+    java.util.List<Project> search(String q, Project.State state);
 }

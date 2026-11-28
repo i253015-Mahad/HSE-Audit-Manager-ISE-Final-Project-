@@ -24,22 +24,28 @@ public class DashboardController {
     }
 
     @GetMapping("/inspector")
-    public String inspector() {
-        dashboardUseCase.inspectorDashboard();
+    public String inspector(Model model) {
+        com.hse.reporting.application.DashboardUseCase.InspectorDashboard dashboard =
+            dashboardUseCase.inspectorDashboard();
+        model.addAttribute("reports", dashboard.reports());
         return "dashboard/inspector";
     }
 
     @GetMapping("/manager")
     public String manager(Model model) {
-        ManagerDashboard dashboard = dashboardUseCase.managerDashboard();
+        com.hse.reporting.application.DashboardUseCase.ManagerDashboard dashboard =
+            dashboardUseCase.managerDashboard();
         model.addAttribute("assignedProjects", dashboard.assignedProjects());
+        model.addAttribute("reports", dashboardUseCase.reports().listForManager());
         return "dashboard/manager";
     }
 
     @GetMapping("/admin")
     public String admin(Model model) {
-        AdminDashboard dashboard = dashboardUseCase.adminDashboard();
+        com.hse.reporting.application.DashboardUseCase.AdminDashboard dashboard =
+            dashboardUseCase.adminDashboard();
         model.addAttribute("projects", dashboard.projects());
+        model.addAttribute("reports", dashboardUseCase.reports().listForAdmin());
         return "dashboard/admin";
     }
 }

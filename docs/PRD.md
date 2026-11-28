@@ -1,25 +1,26 @@
 # Product Requirements Document --- Safety Incident Reporting System
 
-**Status:** Revised draft v2 — all open questions resolved\
-**Date:** 25 November 2026\
-**Basis:** Agreed PRD decisions, subsequent clarifications, and the
-resolved open questions (§15) and confirmed assumptions (§16) recorded
-in this revision.
+**Status:** Revised draft v3 — all open questions resolved; SOR form fields
+and observation identity clarified\
+**Date:** 27 November 2026\
+**Basis:** Agreed PRD decisions, subsequent clarifications, the hand-drawn
+Safety Observation Report (SOR) layout, and the resolved open questions (§15)
+and confirmed assumptions (§16) recorded in this revision.
 
 ------------------------------------------------------------------------
 
 ## 1. Product Intent
 
-The product lets Inspectors record and submit safety incident reports,
-routes submitted reports through the responsible project Manager for
+The product lets Inspectors record and submit Safety Observation Reports
+(SOR), routes submitted reports through the responsible project Manager for
 approval, gives Admin/HSE Engineers visibility of approved reports
 across projects, and tracks approved reports through resolution and
 closure.
 
 Intent statements for traceability:
 
--   **I-1:** Keep the violations of one incident together in one report,
-    without mixing incidents.
+-   **I-1:** Keep the violations of one observation together in one report,
+    without mixing observations.
 -   **I-2:** Route submitted reports through Manager approval before
     they become approved reports.
 -   **I-3:** Show reports according to role and project responsibility.
@@ -37,8 +38,11 @@ with version history retained.
 
 ### 2.1 In Scope
 
--   Inspectors creating and submitting reports containing one or more
-    violations belonging to the same incident.
+-   Inspectors creating and submitting SORs containing one or more
+    violations belonging to the same observation.
+-   Auto-filling observer details from the signed-in Inspector's profile and
+    the Manager email from the selected project, with both snapshotted at
+    submission.
 -   Validation of the project named on the report form and prevention of
     duplicate violations.
 -   Manager approval or rejection of submitted reports.
@@ -81,7 +85,7 @@ closure, deletion, restoration, and Manager reassignment.
 -   Reopening Closed reports.
 -   Evidence or proof required to close a report.
 -   Escalation or time limits for pending approval.
--   Combining violations of different incidents in one report.
+-   Combining violations of different observations in one report.
 -   Statuses other than Open and Closed for approved reports.
 -   System-generated notifications, except for messages displayed by the
     interface.
@@ -91,16 +95,39 @@ closure, deletion, restoration, and Manager reassignment.
   -----------------------------------------------------------------------
   Term                                Meaning
   ----------------------------------- -----------------------------------
-  **Incident**                        An accident or an inspection
+  **Observation**                     An accident or an inspection
                                       finding to which one or more safety
-                                      violations belong.
+                                      violations belong. It is identified by
+                                      observation date, location and type;
+                                      observation time is recorded but is
+                                      not part of the identity.
 
-  **Safety violation**                A safety issue recorded in a
-                                      report.
+  **Safety Observation Report (SOR)** The hand-drawn report form used to
+                                      submit one observation with its
+                                      observer, Manager, violations and
+                                      photograph evidence.
+
+  **Observer**                        The signed-in Inspector whose profile
+                                      supplies the SOR Name, Badge No,
+                                      Title and Company.
+
+  **Manager**                         The project's designated approver;
+                                      the email is resolved when a project
+                                      is selected and displayed on the SOR.
+
+  **Violator**                        The person associated with one
+                                      violation; Name, Badge No, Title and
+                                      Task Incharge are user-entered and
+                                      required.
+
+  **Safety violation**                A safety issue recorded in a report,
+                                      with its observation hazard, risk
+                                      rating, action recommended, violator
+                                      details and optional photographs.
 
   **Report**                          The unified record of the
-                                      violations of one incident. One
-                                      incident may have several reports.
+                                      violations of one observation. One
+                                      observation may have several reports.
 
   **Submitted**                       The Inspector has submitted a
                                       completed report to the system.
@@ -316,23 +343,30 @@ closure, deletion, restoration, and Manager reassignment.
   **FR-01**                           The system shall allow an Inspector
                                       to create a report containing one
                                       or more violations belonging to the
-                                      same incident.
+                                      same observation.
 
   **FR-02**                           The system shall not accept a
                                       report with no violations.
 
   **FR-03**                           The report form shall include a
                                       field naming the project to which
-                                      the report relates, together with
-                                      the incident date and time,
-                                      location, and incident type
-                                      (accident or inspection finding).
-                                      Each violation entry shall include
-                                      a description, hazard category,
-                                      severity level, immediate action
-                                      taken, and zero or more
-                                      photograph attachments. (Resolved
-                                      OQ-01.)
+                                      the report relates. It shall display
+                                      the signed-in Inspector's observer
+                                      Name, Badge No, Title and Company from
+                                      the observer profile, and the Manager
+                                      email from the selected project. It
+                                      shall capture one report-level
+                                      observation date (required), time,
+                                      location and type of observation.
+                                      Each repeated observation entry shall
+                                      include a brief description,
+                                      observation hazard and risk rating
+                                      chosen from configured lists (each
+                                      with OTHER free text), action
+                                      recommended, required violator Name,
+                                      Badge No, Title and Task Incharge, and
+                                      up to three JPEG/PNG photograph
+                                      attachments. (Resolved OQ-01.)
 
   **FR-04**                           The system shall accept a report
                                       only if the named project exists,
@@ -345,17 +379,19 @@ closure, deletion, restoration, and Manager reassignment.
 
   **FR-05**                           The system shall not accept a
                                       report that combines violations
-                                      belonging to different incidents.
-                                      An incident is identified by the
-                                      combination of incident date,
-                                      location, and incident type as
-                                      specified in OQ-02.
+                                      belonging to different observations.
+                                      An observation is identified by the
+                                      combination of observation date,
+                                      location and type; observation time is
+                                      recorded but is not part of the
+                                      identity, as specified in OQ-02.
 
   **FR-06**                           The system shall not accept a
                                       violation that has the same
-                                      incident and identical description
-                                      text as a violation in an existing
-                                      report that has not been deleted,
+                                      observation identity and identical
+                                      description text as a violation in an
+                                      existing report that has not been
+                                      deleted,
                                       and shall show a message. Deleted
                                       reports are excluded from this
                                       duplicate check, and the report
@@ -757,11 +793,11 @@ closure, deletion, restoration, and Manager reassignment.
   ID                                  Rule
   ----------------------------------- -----------------------------------
   **BR-01**                           A report contains violations of one
-                                      incident only. The same violation
+                                      observation only. The same violation
                                       shall not be reported twice, using
                                       the duplicate rule in FR-06.
 
-  **BR-02**                           One incident may have several
+  **BR-02**                           One observation may have several
                                       reports. A violation found after a
                                       report has been submitted goes in a
                                       new report.
@@ -957,14 +993,17 @@ closure, deletion, restoration, and Manager reassignment.
 ### 9.1 Submit and Approve a Report
 
 1.  An Inspector logs in and sees the Inspector interface.
-2.  The Inspector fills in the project name, incident date/time,
-    location, incident type, and one or more violations belonging to
-    one incident (each with description, hazard category, severity,
-    immediate action taken, and optional photographs).
+2.  The Inspector opens **+ New report** and completes the SOR: SOR
+    Details, observer details (auto-filled), the selected project's
+    Manager (auto-filled), report-level observation date/time, location
+    and type, then one or more observation/violator blocks. Each block
+    has a brief description, observation hazard, risk rating, action
+    recommended, required violator details and up to three images.
 3.  The system validates the form, project, and duplicate-violation
     rules.
 4.  The Inspector submits the completed report. A version snapshot is
-    saved.
+    saved with the observer and Manager details, observation identity and
+    all violations.
 5.  The report enters Pending Approval and has no Open/Closed status.
 6.  The project's Manager sees the pending report. Admin/HSE Engineers
     do not.
@@ -1029,16 +1068,16 @@ closure, deletion, restoration, and Manager reassignment.
   ID                      Case                    Required behavior
   ----------------------- ----------------------- -----------------------
   **EC-01**               Violations of two       Not accepted.
-                          incidents in one report 
+                          observations in one report
 
   **EC-02**               Several violations of   One report is allowed.
-                          one incident            
+                          one observation
 
   **EC-03**               Report with no          Not accepted; a message
                           violations              says a violation is
                                                   required.
 
-  **EC-04**               Same incident and       Not accepted, with a
+  **EC-04**               Same observation and    Not accepted, with a
                           identical description   message.
                           as a violation in an    
                           active report           
@@ -1220,7 +1259,7 @@ closure, deletion, restoration, and Manager reassignment.
   ----------------------- ----------------------- -----------------------
   **AC-01**               FR-01                   Given a form with three
                                                   violations of one
-                                                  incident, when
+                                                  observation, when
                                                   submitted, then one
                                                   report containing all
                                                   three violations is
@@ -1233,8 +1272,8 @@ closure, deletion, restoration, and Manager reassignment.
                                                   message says a
                                                   violation is required.
 
-  **AC-03**               FR-03, FR-04            Given a project name
-                                                  matching no project,
+  **AC-03**               FR-03, FR-04            Given a selected project
+                                                  matching no active project,
                                                   when submitted, then
                                                   the report is not
                                                   accepted, an
@@ -1259,15 +1298,16 @@ closure, deletion, restoration, and Manager reassignment.
 
   **AC-06**               FR-05                   Given a form combining
                                                   violations of two
-                                                  incidents, when
+                                                  observations, when
                                                   submitted, then it is
                                                   not accepted. Test
                                                   details depend on OQ-01
                                                   and OQ-02.
 
   **AC-07**               FR-06                   Given a violation with
-                                                  the same incident and
-                                                  identical description
+                                                  the same observation
+                                                  identity and identical
+                                                  description
                                                   as one in a report that
                                                   has not been deleted,
                                                   when submitted, then it
@@ -1592,15 +1632,14 @@ closure, deletion, restoration, and Manager reassignment.
                                                   notification and only
                                                   that Inspector can
                                                   edit and resubmit the
-                                                  report.
-  -----------------------------------------------------------------------
+              -----------------------------------------------------------------------
 
 ## 12. Traceability to Product Intent
 
   -----------------------------------------------------------------------
   Intent                              Supporting requirements
   ----------------------------------- -----------------------------------
-  I-1 One incident's violations       FR-01, FR-02, FR-05, FR-06, BR-01,
+  I-1 One observation's violations    FR-01, FR-02, FR-05, FR-06, BR-01,
   together, no mixing                 BR-02
 
   I-2 Manager approval before reports FR-07, FR-09 to FR-13, BR-03 to
@@ -1739,13 +1778,18 @@ retained for traceability.
   -----------------------------------------------------------------------
   ID      Resolution
   -------- --------------------------------------------------------------
-  OQ-01    Standard HSE form. Report fields: project, incident date/time,
-           location, incident type (accident or inspection finding).
-           Violation fields: description, hazard category, severity
-           level, immediate action taken, photograph(s). See FR-03.
+  OQ-01    Standard SOR form. Report fields: project, observer details
+           (auto-filled), Manager email (auto-filled), observation date
+           (required), time, location and type of observation. Each
+           violation has a brief description, observation hazard and
+           risk rating from configured lists with OTHER free text,
+           action recommended, required violator details and up to
+           three JPEG/PNG photographs. See FR-03.
 
-  OQ-02    An incident is identified by the combination of incident
-           date, location, and incident type. See FR-05.
+  OQ-02    An observation is identified by the combination of
+           observation date, location and type. Observation time is
+           recorded but not used for identity or duplicate checks.
+           See FR-05 and FR-06.
 
   OQ-03    Corrective action is editable and deletable while the report
            is Open, and becomes immutable once Closed. Inspectors cannot

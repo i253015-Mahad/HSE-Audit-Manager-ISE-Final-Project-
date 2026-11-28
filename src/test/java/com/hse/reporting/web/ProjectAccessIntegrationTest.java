@@ -101,6 +101,134 @@ class ProjectAccessIntegrationTest {
                 .andExpect(content().string(containsString("Assign / reassign Manager")));
     }
 
+    // ---- list filters (GET /projects?q=&state= — display refinement) ------
+
+    @Test
+    @WithMockUser(username = ADMIN_EMAIL, authorities = "ROLE_ADMIN")
+    void filterFormIsRenderedOnTheProjectList() throws Exception {
+        mockMvc.perform(get("/projects"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("method=\"get\"")))
+                .andExpect(content().string(containsString("name=\"q\"")))
+                .andExpect(content().string(containsString("name=\"state\"")))
+                // no filter set → the "nothing exists" empty state is NOT shown
+                .andExpect(content().string(not(containsString("No projects match"))));
+    }
+
+    @Test
+    @WithMockUser(username = ADMIN_EMAIL, authorities = "ROLE_ADMIN")
+    void textFilterNarrowsToNameAndManagerMatches() throws Exception {
+        // matches the seeded project's NAME
+        mockMvc.perform(get("/projects").param("q", "warehouse"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Warehouse Extension")))
+                .andExpect(content().string(not(containsString("Head Office Fit-Out"))))
+                .andExpect(content().string(not(containsString("Site A Laboratory"))))
+                // the submitted text is echoed back into the form
+                .andExpect(content().string(containsString("value=\"warehouse\"")));
+
+        // matches on the MANAGER column (case-insensitive); "Site A Laboratory"
+        // is deliberately unassigned in the seed data, so it can never match here
+        mockMvc.perform(get("/projects").param("q", "MAHADWAQAS28"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Head Office Fit-Out")))
+                .andExpect(content().string(not(containsString("Site A Laboratory"))));
+    }
+
+    @Test
+    @WithMockUser(username = ADMIN_EMAIL, authorities = "ROLE_ADMIN")
+    void stateFilterNarrowsByLifecycleState() throws Exception {
+        // every seeded project is OPEN (schema default); nothing closes one here
+        mockMvc.perform(get("/projects").param("state", "CLOSED"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("No projects match your filters")))
+                .andExpect(content().string(containsString("Clear filters")))
+                .andExpect(content().string(not(containsString("Head Office Fit-Out"))));
+
+        mockMvc.perform(get("/projects").param("state", "OPEN"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Head Office Fit-Out")))
+                .andExpect(content().string(containsString("Warehouse Extension")))
+                .andExpect(content().string(containsString("Site A Laboratory")));
+
+        // a hand-edited unknown value degrades to the full list — never a 500
+        mockMvc.perform(get("/projects").param("state", "GARBAGE"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Site A Laboratory")));
+
+        // no match at all → the filtered empty state with a way back
+        mockMvc.perform(get("/projects").param("q", "no-such-project-anywhere"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("No projects match your filters")))
+                .andExpect(content().string(not(containsString("No projects yet"))));
+    }
+
+    @Test
+    @WithMockUser(username = INSPECTOR_EMAIL, authorities = "ROLE_INSPECTOR")
+    void filtersDoNotWidenAccessToTheProjectArea() throws Exception {
+        mockMvc.perform(get("/projects").param("q", "warehouse"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/projects").param("state", "OPEN"))
+                .andExpect(status().isForbidden());
+    }
+
+    // ---- live filtering (?partial=true serves the results fragment) --------
+
+    @Test
+    @WithMockUser(username = ADMIN_EMAIL, authorities = "ROLE_ADMIN")
+    void theListIsWiredForLiveFilteringWithoutAnApplyButton() throws Exception {
+        mockMvc.perform(get("/projects"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"filter-form\"")))
+                .andExpect(content().string(containsString("id=\"project-results\"")))
+                .andExpect(content().string(containsString("/js/project-filter.js")))
+                // filtering is automatic — no Apply/Clear controls left to press
+                .andExpect(content().string(not(containsString("Apply</button>"))))
+                .andExpect(content().string(not(containsString(">Clear</a>"))));
+    }
+
+    @Test
+    @WithMockUser(username = ADMIN_EMAIL, authorities = "ROLE_ADMIN")
+    void partialResponseReturnsOnlyTheFilteredResultsFragment() throws Exception {
+        // no filters → every row, but only the fragment (no page chrome)
+        mockMvc.perform(get("/projects").param("partial", "true"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"project-results\"")))
+                .andExpect(content().string(containsString("Head Office Fit-Out")))
+                .andExpect(content().string(containsString("Site A Laboratory")))
+                .andExpect(content().string(not(containsString("class=\"topbar\""))))
+                .andExpect(content().string(not(containsString("id=\"filter-form\""))));
+
+        // a text filter narrows the fragment exactly like the full page
+        mockMvc.perform(get("/projects")
+                        .param("q", "warehouse")
+                        .param("partial", "true"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Warehouse Extension")))
+                .andExpect(content().string(not(containsString("Head Office Fit-Out"))));
+
+        // no match → the filtered empty state inside the fragment
+        mockMvc.perform(get("/projects")
+                        .param("state", "CLOSED")
+                        .param("partial", "true"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("No projects match your filters")))
+                .andExpect(content().string(containsString("Clear filters")))
+                .andExpect(content().string(not(containsString("Head Office Fit-Out"))));
+    }
+
+    @Test
+    @WithMockUser(username = INSPECTOR_EMAIL, authorities = "ROLE_INSPECTOR")
+    void partialResponsesStayAdminOnly() throws Exception {
+        // the fragment route is the same URL + requireAdmin() (ASR-01, AC-33)
+        mockMvc.perform(get("/projects").param("partial", "true"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/projects")
+                        .param("q", "warehouse")
+                        .param("partial", "true"))
+                .andExpect(status().isForbidden());
+    }
+
     // ---- CSRF (ADR-08) ----------------------------------------------------
 
     @Test
@@ -164,6 +292,78 @@ class ProjectAccessIntegrationTest {
         mockMvc.perform(get("/manager").with(user(asUser(MANAGER_EMAIL, "MANAGER"))))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(name)));
+    }
+
+    // ---- BR-19: only an existing Manager account may be assigned ---------
+
+    @Test
+    void assigningAnEmailThatIsNotAManagerIsRejected() throws Exception {
+        String redirectTo = mockMvc.perform(post("/projects/new")
+                        .param("name", uniqueProjectName())
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN")))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+        String projectId = redirectTo.replaceAll("\\D", "");
+
+        // an existing account with the wrong role is refused with a message,
+        // the form is redisplayed and the typed email is kept
+        mockMvc.perform(post("/projects/" + projectId + "/manager")
+                        .param("managerEmail", INSPECTOR_EMAIL)
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN")))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("is not a registered Manager")))
+                .andExpect(content().string(containsString("value=\"" + INSPECTOR_EMAIL + "\"")));
+
+        // an address that is not an account at all is refused the same way
+        mockMvc.perform(post("/projects/" + projectId + "/manager")
+                        .param("managerEmail", "nobody@nowhere.test")
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN")))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("is not a registered Manager")));
+
+        // nothing was written: the project still has no Manager
+        mockMvc.perform(get("/projects/" + projectId + "/manager")
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN"))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("No Manager assigned yet")));
+    }
+
+    @Test
+    void reassigningTheManagerWhoAlreadyHoldsTheProjectIsRejected() throws Exception {
+        String redirectTo = mockMvc.perform(post("/projects/new")
+                        .param("name", uniqueProjectName())
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN")))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+        String projectId = redirectTo.replaceAll("\\D", "");
+
+        mockMvc.perform(post("/projects/" + projectId + "/manager")
+                        .param("managerEmail", MANAGER_EMAIL)
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN")))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection());
+
+        // the same Manager again — refused with a message instead of a fake success
+        mockMvc.perform(post("/projects/" + projectId + "/manager")
+                        .param("managerEmail", MANAGER_EMAIL)
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN")))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("is already the Manager")));
+
+        // unchanged: still shown as the current Manager
+        mockMvc.perform(get("/projects/" + projectId + "/manager")
+                        .with(user(asUser(ADMIN_EMAIL, "ADMIN"))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Current: " + MANAGER_EMAIL)));
     }
 
     // ---- FR-14/15/16 + FR-42: merged dashboard cards ----------------------

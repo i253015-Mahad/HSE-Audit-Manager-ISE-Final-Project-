@@ -6,8 +6,13 @@
 <header th:replace="~{fragments :: topbar}"></header>
 
 <main class="container">
-    <h1>Inspector</h1>
-    <p class="lead">You are signed in as a Safety Team Inspector.</p>
+    <section class="page-heading heading-row">
+        <div>
+            <h1>Inspector</h1>
+            <p class="lead">You are signed in as a Safety Team Inspector.</p>
+        </div>
+        <a class="btn btn-primary" th:href="@{/reports/new}">+ New report</a>
+    </section>
 
     <!-- FR-42 — rejection notifications for the owning Inspector only -->
     <th:block th:replace="~{fragments :: notificationsCard}"></th:block>

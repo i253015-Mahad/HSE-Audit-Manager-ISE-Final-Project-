@@ -9,10 +9,29 @@
   Scope: project list + create + assign/reassign Manager + close (FR-30…FR-36).
 
   MODEL CONTRACT for ProjectController.list():
-    projects   : List<Project> — all projects (Admin scope, PRD §4)
+    projects   : List<Project> — the rows to display: all projects, or the
+                 subset matching the optional GET filters below (Admin scope,
+                 PRD §4 — the filter never changes who may see the page)
+    filterQ    : String — echoed ?q= text (trimmed; "" when absent)
+    filterState : String — echoed ?state= ("" | OPEN | CLOSED)
+    filterActive : boolean — at least one filter is set; drives the
+                 "no match" empty state and the Clear link
     currentUserEmail / currentUserRole : identity for the shared top bar,
                                          published by CurrentUserModelAdvice
     flashMessage : String      — optional one-off confirmation (flash)
+
+    FILTERS (GET /projects?q=&state=): q is a case-insensitive substring over
+        project name OR manager email; state narrows to OPEN / CLOSED. Both
+        are display refinements only — ProjectController.requireAdmin() and
+        the SecurityConfig URL rule remain the enforcement (ASR-01).
+
+    LIVE FILTERING (no Apply button): static/js/project-filter.js watches the
+        search box and the state dropdown, then fetches the same route with
+        &partial=true and swaps only the #project-results fragment — the input
+        keeps focus/caret. The controller serves the fragment for partial=true
+        and the whole page otherwise; both paths run requireAdmin() first.
+        Without JavaScript the form still works as a plain GET (press Enter
+        in the search box).
 
     Project fields used here : id, name, managerEmail (nullable until
                                assigned), state (OPEN|CLOSED), closedAt
@@ -47,6 +66,27 @@
             <span class="card-note">One Manager per project · names are unique</span>
         </div>
 
+        <!-- Server-side filters (GET) — the URL carries the state, so refresh,
+             back button and shared links all reproduce the same view. No Apply
+             button: project-filter.js applies each change automatically (Enter
+             still submits the plain GET form when JavaScript is unavailable). -->
+        <form class="filter-bar" id="filter-form" method="get" th:action="@{/projects}"
+              aria-label="Filter projects">
+            <label class="filter-label" for="filter-q">Search</label>
+            <input type="text" id="filter-q" name="q" th:value="${filterQ}"
+                   placeholder="Project name or manager email" autocomplete="off">
+
+            <label class="filter-label" for="filter-state">State</label>
+            <select id="filter-state" name="state">
+                <option value="">All states</option>
+                <option value="OPEN" th:selected="${filterState == 'OPEN'}">Open</option>
+                <option value="CLOSED" th:selected="${filterState == 'CLOSED'}">Closed</option>
+            </select>
+        </form>
+
+        <!-- th:fragment="results" — the only block project-filter.js swaps in.
+             Wrapped in one div so the JS has a stable #project-results target. -->
+        <div id="project-results" th:fragment="results">
         <div class="table-wrap" th:if="${projects != null and !projects.isEmpty()}">
             <table class="data-table">
                 <thead>
@@ -82,8 +122,13 @@
         </div>
 
         <div class="empty-state" th:unless="${projects != null and !projects.isEmpty()}">
-            <p>No projects yet. Use <strong>New project</strong> to create one.</p>
+            <!-- Distinguish "nothing exists" from "nothing matched" so a filter
+                 that hides every row still offers a way back. -->
+            <p th:if="${filterActive}">No projects match your filters.
+                <a th:href="@{/projects}" data-clear-filters>Clear filters</a></p>
+            <p th:unless="${filterActive}">No projects yet. Use <strong>New project</strong> to create one.</p>
         </div>
+        </div><!-- /#project-results (fragment "results") -->
     </section>
 
 </main>
@@ -92,5 +137,6 @@
     <p>HSE Safety Reporting System</p>
 </footer>
 
+<script defer th:src="@{/js/project-filter.js}"></script>
 </body>
 </html>

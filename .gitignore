@@ -1,4 +1,6 @@
 target/
+# Local photograph storage (ADR-06), not source.
+data/
 !.mvn/wrapper/maven-wrapper.jar
 *.class
 *.log

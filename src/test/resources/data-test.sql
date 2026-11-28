@@ -10,3 +10,9 @@ INSERT INTO projects (name, manager_email) VALUES
   ('Head Office Fit-Out', 'mahadwaqas28@gmail.com'),
   ('Warehouse Extension', 'extra.manager@hse.local'),
   ('Site A Laboratory',   NULL);
+
+INSERT INTO inspector_designation (inspector_email, manager_email) VALUES
+  ('i253172@nu.edu.pk', 'mahadwaqas28@gmail.com');
+
+INSERT INTO observer_profile (email, full_name, badge_no, title, company) VALUES
+  ('i253172@nu.edu.pk', 'Inspector I253172', 'I-253172', 'Safety Inspector', 'HSE Department');
