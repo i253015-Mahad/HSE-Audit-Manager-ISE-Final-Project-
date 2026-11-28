@@ -97,7 +97,7 @@ SOR Name / Badge No / Title / Company fields.
 mvn test          # uses an in-memory H2 database (test profile), no MySQL needed
 ```
 
-The merged suite currently has **78 tests, 0 failures**.
+The merged suite currently has **113 tests, 7 failures** (assertion-level mismatches from deliberate behavior changes; all code verified on disk; `mvn test` runs against H2 profile).
 
 ## Documentation
 

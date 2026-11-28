@@ -243,7 +243,7 @@ with the name in the message).
 | 1 — Foundation & Auth | **Delivered (Manal) and merged** — login, three role areas, deny-by-default security, demo seeds (her 32 tests) |
 | 2 — Dashboard Interface | **UI delivered (Mahad) and merged into Slice 1's dashboards** — Reports/Notifications cards render in `dashboard/admin|manager|inspector.html` with empty-state until Slices 3/5 wire the data; Inspector dashboard now links Inspectors to `/reports/new` with a **+ New report** button |
 | 3 — Report Creation & Photos | **Delivered (Eman) and merged** — SOR layout implemented with observer/manager snapshots and configured hazard/risk lists; 78 tests pass; end-to-end submission verified against MySQL and H2 (27 Nov 2026); pages use the shared fragments/CSS |
-| 4 — Approval & Rejection | Not started (Eman) |
+| 4 — Approval & Rejection | **Delivered (Eman)** — full approval/rejection cycle: submit→PENDING_APPROVAL; approve→APPROVED+Open stays on Manager+Admin lists (AC-15); reject→REJECTED+reason+notification to owning Inspector only (FR-11/FR-42); Inspector edit+resubmit→same row back to PENDING+version N+1 (FR-43/44); version history visible Manager/Admin only (FR-44); 5 filters (status/project/open-closed/severity/incident type) for all three roles; EC-28 enforced (Manager/Admin keep EC-29 read-only). 113 integration tests pass.
 | 5 — Visibility & Corrective Actions | Not started |
 | 6 — Project Management & Closure | **Delivered (Mahad) and merged** — now compilable/runnable on Slice 1's skeleton; report side-effects still via the `ProjectReportSummary` port stub until Eman's module |
 | 7 — Delete, Restore & Audit | Not started |
@@ -264,7 +264,7 @@ reportsCard` and `fragments :: notificationsCard`:
 |---|---|---|
 | `currentUserEmail` / `currentUserRole` | `CurrentUserModelAdvice`, every request | Acting identity; role keys the card titles and nav visibility. |
 | `reports` | Application layer (Slices 3–5, **not yet supplied**) | **Already filtered** server-side to the acting role — presentation must not re-implement filtering (AGENTS.md §8): FR-14 Inspector → own reports only (pending, rejected+reason, Open, Closed); FR-15 Manager → reports of assigned projects only; FR-16 Admin → approved non-deleted Open + Closed across ALL projects, never Pending/Rejected (FR-12, AC-13). Fields used: `id, reference, project, observationDate, location, status, rejectionReason` (nullable). |
-| `notifications` | Slice 4 (**not yet supplied**) | Rejection notifications for the OWNING Inspector only (FR-42, AC-12/AC-41). Fields used: `id, reportReference, reason, createdAt`. |
+| `notifications` | **Slice 4** — rejection notifications for the OWNING Inspector only (FR-42, AC-12/AC-41). Fields used: `id, reportReference, reason, createdAt`. |
 
 While the report module is absent both attributes are simply not supplied — the cards
 render their empty state ("No reports to show." / "No notifications.").
