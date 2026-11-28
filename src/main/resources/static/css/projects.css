@@ -3,6 +3,54 @@
    Loads AFTER site.css (shared base).
    ============================================================ */
 
+/* ---------- List filters (GET /projects?q=&state=) ---------- */
+
+.filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.filter-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.filter-bar input[type="text"],
+.filter-bar select {
+    font: inherit;
+    font-size: 0.9rem;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+    color: inherit;
+}
+
+.filter-bar input[type="text"] {
+    min-width: 15rem;
+}
+
+.filter-bar input[type="text"]:focus,
+.filter-bar select:focus {
+    outline: 2px solid #2563eb;
+    outline-offset: 1px;
+}
+
+/* Live filter (project-filter.js): feedback while the results are fetching. */
+
+#project-results {
+    transition: opacity 120ms ease-in-out;
+}
+
+#project-results.is-updating {
+    opacity: 0.55;
+}
+
 /* ---------- Closure warning page (flow 9.4) ---------- */
 
 .warning-card {

@@ -54,6 +54,19 @@ class ProjectServiceTest {
         public List<Project> findAll() {
             return new ArrayList<>(rows.values());
         }
+
+        @Override
+        public List<Project> search(String q, Project.State state) {
+            String needle = q == null ? "" : q.toLowerCase();
+            return rows.values().stream()
+                    .filter(p -> state == null || p.getState() == state)
+                    .filter(p -> q == null
+                            || p.getName().toLowerCase().contains(needle)
+                            || (p.getManagerEmail() != null
+                                && p.getManagerEmail().toLowerCase().contains(needle)))
+                    .sorted((a, b) -> a.getName().compareToIgnoreCase(b.getName()))
+                    .collect(java.util.stream.Collectors.toList());
+        }
     }
 
     /** Recording port fake — captures closure side-effect calls (FR-33/FR-35). */
@@ -311,5 +324,64 @@ class ProjectServiceTest {
     @DisplayName("ProjectNotFoundException for unknown id")
     void unknownProjectNotFound() {
         assertThrows(ProjectNotFoundException.class, () -> service.get(999L));
+    }
+
+    // ------------------------------------------------------------ list filters (GET ?q=&state=)
+
+    @Test
+    @DisplayName("Filters: blank q and blank/unknown state mean no restriction")
+    void blankFiltersReturnEverything() {
+        service.create("Alpha");
+        service.create("Beta");
+
+        assertEquals(2, service.findMatching(null, null).size());
+        assertEquals(2, service.findMatching("", "").size());
+        assertEquals(2, service.findMatching("   ", "   ").size());
+        assertEquals(2, service.findMatching(null, "NOT_A_STATE").size(),
+                "a hand-edited URL must degrade to the full list, not throw");
+    }
+
+    @Test
+    @DisplayName("Filters: q is a case-insensitive substring of the name")
+    void textMatchesProjectNameIgnoringCase() {
+        service.create("Warehouse Extension");
+        service.create("Site A Laboratory");
+
+        List<Project> hits = service.findMatching("warehouse", "");
+
+        assertEquals(1, hits.size());
+        assertEquals("Warehouse Extension", hits.get(0).getName());
+        assertTrue(service.findMatching("nothing matches", "").isEmpty());
+    }
+
+    @Test
+    @DisplayName("Filters: q also matches the manager email")
+    void textMatchesManagerEmail() {
+        Project p = service.create("Head Office Fit-Out");
+        service.assignManager(p.getId(), "mahadwaqas28@gmail.com");
+        service.create("Site A Laboratory");
+
+        List<Project> hits = service.findMatching("MAHADWAQAS", "");
+
+        assertEquals(1, hits.size());
+        assertEquals("Head Office Fit-Out", hits.get(0).getName());
+    }
+
+    @Test
+    @DisplayName("Filters: state narrows, and combines with q")
+    void stateNarrowsAndCombinesWithText() {
+        service.create("Warehouse");
+        service.create("Legacy Yard");
+        service.closeConfirmed(service.create("Old Plant").getId());
+
+        assertEquals(List.of(Project.State.OPEN, Project.State.OPEN),
+                service.findMatching(null, "OPEN").stream().map(Project::getState).toList());
+        assertEquals(1, service.findMatching(null, "closed").size(),
+                "state parsing is case-insensitive for hand-edited URLs");
+        assertEquals(Project.State.CLOSED,
+                service.findMatching("old plant", "CLOSED").get(0).getState());
+        assertTrue(service.findMatching("warehouse", "CLOSED").isEmpty(),
+                "q and state must BOTH match");
+        assertTrue(service.findMatching(null, "CLOSED").stream().noneMatch(Project::isOpen));
     }
 }

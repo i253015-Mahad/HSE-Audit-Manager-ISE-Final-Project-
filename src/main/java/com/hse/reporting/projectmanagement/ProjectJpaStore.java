@@ -36,4 +36,10 @@ public class ProjectJpaStore implements ProjectStore {
     public List<Project> findAll() {
         return repository.findAllByOrderByNameAsc();
     }
+
+    @Override
+    public List<Project> search(String q, Project.State state) {
+        String text = q == null || q.isBlank() ? null : q.trim();
+        return repository.search(text, state);
+    }
 }

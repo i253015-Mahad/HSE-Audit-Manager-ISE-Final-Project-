@@ -3,6 +3,7 @@ package com.hse.reporting.projectmanagement;
 import com.hse.reporting.useraccess.access.ManagerDirectory;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -149,6 +150,32 @@ public class ProjectService {
 
     public List<Project> findAll() {
         return projects.findAll();
+    }
+
+    /**
+     * Filtered project list for the Admin list page (GET {@code ?q=&state=}).
+     *
+     * <p>Display refinement only — never narrows authorization: the caller
+     * ({@code ProjectController.requireAdmin()}) has already decided access,
+     * and {@link #findAll()} stays available for unfiltered consumers.
+     * Blank text and an unparseable state simply mean "no restriction", so a
+     * hand-edited URL degrades to the full list instead of a 500.
+     */
+    public List<Project> findMatching(String query, String state) {
+        String text = query == null || query.isBlank() ? null : query.trim();
+        return projects.search(text, parseState(state));
+    }
+
+    /** {@code null} unless the value names a known state (case-insensitive for hand-edited URLs). */
+    private Project.State parseState(String state) {
+        if (state == null || state.isBlank()) {
+            return null;
+        }
+        try {
+            return Project.State.valueOf(state.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException unknown) {
+            return null;
+        }
     }
 
     public Project get(Long projectId) {
