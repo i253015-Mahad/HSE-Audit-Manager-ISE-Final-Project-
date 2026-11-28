@@ -5,17 +5,17 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.util.List;
 
 /**
- * Team-supplied value lists for the standardized HSE form (FR-03 / OQ-01).
+ * Team-supplied value lists for the standardized SOR form (FR-03 / OQ-01).
  * The lists are intentionally externalized: the code does not invent HSE
- * categories or severity levels. The OTHER option is always available and
- * permits free text.
+ * observation hazards or risk ratings. The OTHER option is always available
+ * and permits free text.
  */
 @ConfigurationProperties(prefix = "hse.form")
 public class ReportOptions {
 
     private String otherOption = "OTHER";
-    private List<String> hazardCategories = List.of();
-    private List<String> severityLevels = List.of();
+    private List<String> observationHazards = List.of();
+    private List<String> riskRatings = List.of();
 
     public String getOtherOption() {
         return otherOption;
@@ -25,31 +25,31 @@ public class ReportOptions {
         this.otherOption = otherOption;
     }
 
-    public List<String> getHazardCategories() {
-        return hazardCategories;
+    public List<String> getObservationHazards() {
+        return observationHazards;
     }
 
-    public void setHazardCategories(List<String> hazardCategories) {
-        this.hazardCategories = hazardCategories == null ? List.of() : List.copyOf(hazardCategories);
+    public void setObservationHazards(List<String> observationHazards) {
+        this.observationHazards = observationHazards == null ? List.of() : List.copyOf(observationHazards);
     }
 
-    public List<String> getSeverityLevels() {
-        return severityLevels;
+    public List<String> getRiskRatings() {
+        return riskRatings;
     }
 
-    public void setSeverityLevels(List<String> severityLevels) {
-        this.severityLevels = severityLevels == null ? List.of() : List.copyOf(severityLevels);
+    public void setRiskRatings(List<String> riskRatings) {
+        this.riskRatings = riskRatings == null ? List.of() : List.copyOf(riskRatings);
     }
 
     public boolean isOther(String value) {
         return otherOption.equals(value);
     }
 
-    public boolean isKnownHazardCategory(String value) {
-        return hazardCategories.contains(value);
+    public boolean isKnownObservationHazard(String value) {
+        return observationHazards.contains(value);
     }
 
-    public boolean isKnownSeverityLevel(String value) {
-        return severityLevels.contains(value);
+    public boolean isKnownRiskRating(String value) {
+        return riskRatings.contains(value);
     }
 }

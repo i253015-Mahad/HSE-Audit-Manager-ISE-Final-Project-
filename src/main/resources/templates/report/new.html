@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments :: headWithReport('New safety report')}"></head>
+<head th:replace="~{fragments :: headWithReport('Add Report')}"></head>
 <body>
 
 <header th:replace="~{fragments :: topbar}"></header>
 
-<main class="container">
-    <h1>Create a safety report</h1>
-    <p class="subtitle">Record one incident with its violations and photograph evidence.</p>
+<main class="container sor-page">
+    <h1>Add Report</h1>
+    <p class="subtitle">Safety Observation Report (SOR)</p>
 
     <div class="alert error" th:if="${formError}" th:text="${formError}">Refusal message</div>
     <div class="alert error" th:if="${#fields.hasGlobalErrors()}"
@@ -17,123 +17,351 @@
           enctype="multipart/form-data">
         <input type="hidden" th:field="*{submissionToken}">
 
-        <section class="card">
-            <h2>Incident</h2>
-            <label for="project">Project</label>
-            <select id="project" th:field="*{projectId}">
-                <option value="">Select a project</option>
-                <option th:each="project : ${projects}"
-                        th:value="${project.id}" th:text="${project.name}"></option>
-            </select>
-            <span class="field-error alert error" th:if="${#fields.hasErrors('projectId')}" th:errors="*{projectId}"></span>
-
-            <label for="incidentDate">Incident date</label>
-            <input id="incidentDate" type="date" th:field="*{incidentDate}">
-            <span class="field-error alert error" th:if="${#fields.hasErrors('incidentDate')}" th:errors="*{incidentDate}"></span>
-
-            <label for="incidentTime">Incident time</label>
-            <input id="incidentTime" type="time" th:field="*{incidentTime}">
-            <span class="field-error alert error" th:if="${#fields.hasErrors('incidentTime')}" th:errors="*{incidentTime}"></span>
-
-            <label for="location">Location</label>
-            <input id="location" type="text" th:field="*{location}">
-            <span class="field-error alert error" th:if="${#fields.hasErrors('location')}" th:errors="*{location}"></span>
-
-            <label for="incidentType">Incident type</label>
-            <select id="incidentType" th:field="*{incidentType}">
-                <option value="">Select a type</option>
-                <option th:each="type : ${incidentTypes}" th:value="${type}"
-                        th:text="${type.name() == 'ACCIDENT' ? 'Accident' : 'Inspection finding'}"></option>
-            </select>
-            <span class="field-error alert error" th:if="${#fields.hasErrors('incidentType')}" th:errors="*{incidentType}"></span>
+        <section class="card sor-card">
+            <h2>SOR Details</h2>
+            <p class="note">Record one observation with its observer, violator and photograph evidence. Add more
+                observations below when the same incident has several violations.</p>
         </section>
 
-        <section class="card">
-            <h2>Violations</h2>
-            <p class="note">All violations must belong to the incident above. One incident may have several violations.</p>
-            <div id="violations">
-                <div class="violation-row" th:each="violation, iter : *{violations}">
-                    <h3>Violation <span class="violation-number" th:text="${iter.index + 1}">1</span></h3>
-
-                    <label>Description
-                        <textarea th:field="*{violations[__${iter.index}__].description}"></textarea>
-                    </label>
-                    <span class="field-error alert error"
-                          th:if="${#fields.hasErrors('violations[' + iter.index + '].description')}"
-                          th:errors="*{violations[__${iter.index}__].description}"></span>
-
-                    <label>Hazard category
-                        <select class="choice-with-other" data-other-field="hazard"
-                                th:attr="data-other-value=${otherOption}"
-                                th:field="*{violations[__${iter.index}__].hazardCategory}">
-                            <option value="">Select a hazard category</option>
-                            <option th:each="category : ${hazardCategories}"
-                                    th:value="${category}" th:text="${category}"></option>
-                            <option th:value="${otherOption}"
-                                    th:text="${otherOption + ' (describe below)'}"></option>
-                        </select>
-                    </label>
-                    <span class="field-error alert error"
-                          th:if="${#fields.hasErrors('violations[' + iter.index + '].hazardCategory')}"
-                          th:errors="*{violations[__${iter.index}__].hazardCategory}"></span>
-
-                    <div class="other-field" data-other-field="hazard"
-                         th:classappend="${reportForm.violations[__${iter.index}__].hazardCategory == otherOption or #fields.hasErrors('violations[' + iter.index + '].hazardCategoryOther')} ? ' is-visible' : ''">
-                        <label>Other hazard category
-                            <input type="text" th:field="*{violations[__${iter.index}__].hazardCategoryOther}"
-                                   th:disabled="${reportForm.violations[__${iter.index}__].hazardCategory == otherOption or #fields.hasErrors('violations[' + iter.index + '].hazardCategoryOther')} ? null : 'disabled'">
-                        </label>
-                        <span class="field-error alert error"
-                              th:if="${#fields.hasErrors('violations[' + iter.index + '].hazardCategoryOther')}"
-                              th:errors="*{violations[__${iter.index}__].hazardCategoryOther}"></span>
-                    </div>
-
-                    <label>Severity level
-                        <select class="choice-with-other" data-other-field="severity"
-                                th:attr="data-other-value=${otherOption}"
-                                th:field="*{violations[__${iter.index}__].severityLevel}">
-                            <option value="">Select a severity level</option>
-                            <option th:each="level : ${severityLevels}"
-                                    th:value="${level}" th:text="${level}"></option>
-                            <option th:value="${otherOption}"
-                                    th:text="${otherOption + ' (describe below)'}"></option>
-                        </select>
-                    </label>
-                    <span class="field-error alert error"
-                          th:if="${#fields.hasErrors('violations[' + iter.index + '].severityLevel')}"
-                          th:errors="*{violations[__${iter.index}__].severityLevel}"></span>
-
-                    <div class="other-field" data-other-field="severity"
-                         th:classappend="${reportForm.violations[__${iter.index}__].severityLevel == otherOption or #fields.hasErrors('violations[' + iter.index + '].severityLevelOther')} ? ' is-visible' : ''">
-                        <label>Other severity level
-                            <input type="text" th:field="*{violations[__${iter.index}__].severityLevelOther}"
-                                   th:disabled="${reportForm.violations[__${iter.index}__].severityLevel == otherOption or #fields.hasErrors('violations[' + iter.index + '].severityLevelOther')} ? null : 'disabled'">
-                        </label>
-                        <span class="field-error alert error"
-                              th:if="${#fields.hasErrors('violations[' + iter.index + '].severityLevelOther')}"
-                              th:errors="*{violations[__${iter.index}__].severityLevelOther}"></span>
-                    </div>
-
-                    <label>Immediate action taken
-                        <textarea th:field="*{violations[__${iter.index}__].immediateAction}"></textarea>
-                    </label>
-
-                    <label>Photographs (max 3, JPEG or PNG, 10 MB each)
-                        <input type="file" multiple accept="image/jpeg,image/png"
-                               th:name="${'violations[' + iter.index + '].photos'}">
-                    </label>
-
-                    <button type="button" class="linklike remove-violation">Remove this violation</button>
+        <section class="card sor-card">
+            <h2>Observer Details</h2>
+            <div class="sor-grid">
+                <div class="field">
+                    <label>Name</label>
+                    <input class="readonly" type="text" th:value="${observer?.name}" readonly>
+                </div>
+                <div class="field">
+                    <label>Badge No</label>
+                    <input class="readonly" type="text" th:value="${observer?.badgeNumber}" readonly>
+                </div>
+                <div class="field">
+                    <label>Title</label>
+                    <input class="readonly" type="text" th:value="${observer?.title}" readonly>
+                </div>
+                <div class="field">
+                    <label for="project">Project</label>
+                    <select id="project" th:field="*{projectId}" data-manager-target="manager">
+                        <option value="">Select a project</option>
+                        <option th:each="project : ${projects}"
+                                th:value="${project.id}"
+                                th:text="${project.name}"
+                                th:attr="data-manager=${project.managerEmail}"></option>
+                    </select>
+                    <span class="field-error alert error" th:if="${#fields.hasErrors('projectId')}"
+                          th:errors="*{projectId}"></span>
+                </div>
+                <div class="field">
+                    <label for="manager">Manager</label>
+                    <input id="manager" class="readonly" type="text" th:value="${selectedManagerEmail}" readonly>
+                    <span class="hint">Auto-filled from the selected project.</span>
                 </div>
             </div>
-            <button type="button" class="button-link" id="add-violation">Add another violation</button>
-            <span class="field-error alert error" th:if="${#fields.hasErrors('violations')}" th:errors="*{violations}"></span>
         </section>
 
-        <div class="actions">
+        <section class="card sor-card">
+            <h2>Observation Details</h2>
+            <p class="note">Date, time, location and type are report-level and stay the same for every observation.</p>
+
+            <div id="violations">
+                <div class="violation-row" th:each="violation, iter : *{violations}">
+                    <h3>Observation <span class="violation-number" th:text="${iter.index + 1}">1</span></h3>
+
+                    <div class="sor-grid">
+                        <div class="field">
+                            <label>Risk Rating</label>
+                            <select class="choice-with-other" data-other-field="risk"
+                                    th:attr="data-other-value=${otherOption}"
+                                    th:field="*{violations[__${iter.index}__].riskRating}">
+                                <option value="">Select a risk rating</option>
+                                <option th:each="rating : ${riskRatings}"
+                                        th:value="${rating}" th:text="${rating}"></option>
+                                <option th:value="${otherOption}"
+                                        th:text="${otherOption + ' (describe below)'}"></option>
+                            </select>
+                            <span class="field-error alert error"
+                                  th:if="${#fields.hasErrors('violations[' + iter.index + '].riskRating')}"
+                                  th:errors="*{violations[__${iter.index}__].riskRating}"></span>
+                            <div class="other-field" data-other-field="risk"
+                                 th:classappend="${reportForm.violations[__${iter.index}__].riskRating == otherOption or #fields.hasErrors('violations[' + iter.index + '].riskRatingOther')} ? ' is-visible' : ''">
+                                <label>Other risk rating
+                                    <input type="text" th:field="*{violations[__${iter.index}__].riskRatingOther}"
+                                           th:disabled="${reportForm.violations[__${iter.index}__].riskRating == otherOption or #fields.hasErrors('violations[' + iter.index + '].riskRatingOther')} ? null : 'disabled'">
+                                </label>
+                                <span class="field-error alert error"
+                                      th:if="${#fields.hasErrors('violations[' + iter.index + '].riskRatingOther')}"
+                                      th:errors="*{violations[__${iter.index}__].riskRatingOther}"></span>
+                            </div>
+                        </div>
+
+                        <div class="field field-wide">
+                            <label>Brief Description
+                                <textarea class="large" th:field="*{violations[__${iter.index}__].briefDescription}"></textarea>
+                            </label>
+                            <span class="field-error alert error"
+                                  th:if="${#fields.hasErrors('violations[' + iter.index + '].briefDescription')}"
+                                  th:errors="*{violations[__${iter.index}__].briefDescription}"></span>
+                        </div>
+
+                        <div class="field field-wide">
+                            <label>Action Recommended
+                                <textarea class="large" th:field="*{violations[__${iter.index}__].actionRecommended}"></textarea>
+                            </label>
+                            <span class="field-error alert error"
+                                  th:if="${#fields.hasErrors('violations[' + iter.index + '].actionRecommended')}"
+                                  th:errors="*{violations[__${iter.index}__].actionRecommended}"></span>
+                        </div>
+
+                        <div class="field" th:if="${iter.index == 0}">
+                            <label>Type of Observation
+                                <select data-observation-field="observationType" th:field="*{observationType}">
+                                    <option value="">Select a type</option>
+                                    <option th:each="type : ${observationTypes}" th:value="${type}"
+                                            th:text="${type.name() == 'ACCIDENT' ? 'Accident' : 'Inspection finding'}"></option>
+                                </select>
+                            </label>
+                            <span class="field-error alert error" th:if="${#fields.hasErrors('observationType')}"
+                                  th:errors="*{observationType}"></span>
+                        </div>
+                        <div class="field" th:unless="${iter.index == 0}">
+                            <label>Type of Observation
+                                <select class="observation-mirror" data-observation-field="observationType" readonly tabindex="-1">
+                                    <option value="">Select a type</option>
+                                    <option th:each="type : ${observationTypes}" th:value="${type}"
+                                            th:text="${type.name() == 'ACCIDENT' ? 'Accident' : 'Inspection finding'}"></option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div class="field">
+                            <label>Company
+                                <input class="readonly" type="text" th:value="${observer?.company}" readonly>
+                            </label>
+                        </div>
+
+                        <div class="field" th:if="${iter.index == 0}">
+                            <label>Time of Observation
+                                <input type="time" data-observation-field="observationTime" th:field="*{observationTime}">
+                            </label>
+                            <span class="field-error alert error" th:if="${#fields.hasErrors('observationTime')}"
+                                  th:errors="*{observationTime}"></span>
+                        </div>
+                        <div class="field" th:unless="${iter.index == 0}">
+                            <label>Time of Observation
+                                <input class="observation-mirror" type="time" data-observation-field="observationTime" readonly tabindex="-1">
+                            </label>
+                        </div>
+
+                        <div class="field" th:if="${iter.index == 0}">
+                            <label>Observation Date
+                                <input type="date" data-observation-field="observationDate" th:field="*{observationDate}">
+                            </label>
+                            <span class="field-error alert error" th:if="${#fields.hasErrors('observationDate')}"
+                                  th:errors="*{observationDate}"></span>
+                        </div>
+                        <div class="field" th:unless="${iter.index == 0}">
+                            <label>Observation Date
+                                <input class="observation-mirror" type="date" data-observation-field="observationDate" readonly tabindex="-1">
+                            </label>
+                        </div>
+
+                        <div class="field" th:if="${iter.index == 0}">
+                            <label>Location / Area
+                                <input type="text" data-observation-field="location" th:field="*{location}">
+                            </label>
+                            <span class="field-error alert error" th:if="${#fields.hasErrors('location')}"
+                                  th:errors="*{location}"></span>
+                        </div>
+                        <div class="field" th:unless="${iter.index == 0}">
+                            <label>Location / Area
+                                <input class="observation-mirror" type="text" data-observation-field="location" readonly tabindex="-1">
+                            </label>
+                        </div>
+
+                        <div class="field">
+                            <label>Observation Hazard</label>
+                            <select class="choice-with-other" data-other-field="hazard"
+                                    th:attr="data-other-value=${otherOption}"
+                                    th:field="*{violations[__${iter.index}__].observationHazard}">
+                                <option value="">Select an observation hazard</option>
+                                <option th:each="hazard : ${observationHazards}"
+                                        th:value="${hazard}" th:text="${hazard}"></option>
+                                <option th:value="${otherOption}"
+                                        th:text="${otherOption + ' (describe below)'}"></option>
+                            </select>
+                            <span class="field-error alert error"
+                                  th:if="${#fields.hasErrors('violations[' + iter.index + '].observationHazard')}"
+                                  th:errors="*{violations[__${iter.index}__].observationHazard}"></span>
+                            <div class="other-field" data-other-field="hazard"
+                                 th:classappend="${reportForm.violations[__${iter.index}__].observationHazard == otherOption or #fields.hasErrors('violations[' + iter.index + '].observationHazardOther')} ? ' is-visible' : ''">
+                                <label>Other observation hazard
+                                    <input type="text" th:field="*{violations[__${iter.index}__].observationHazardOther}"
+                                           th:disabled="${reportForm.violations[__${iter.index}__].observationHazard == otherOption or #fields.hasErrors('violations[' + iter.index + '].observationHazardOther')} ? null : 'disabled'">
+                                </label>
+                                <span class="field-error alert error"
+                                      th:if="${#fields.hasErrors('violations[' + iter.index + '].observationHazardOther')}"
+                                      th:errors="*{violations[__${iter.index}__].observationHazardOther}"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4>Violator Details</h4>
+                    <div class="sor-grid">
+                        <div class="field">
+                            <label>Name
+                                <input type="text" th:field="*{violations[__${iter.index}__].violatorName}">
+                            </label>
+                            <span class="field-error alert error"
+                                  th:if="${#fields.hasErrors('violations[' + iter.index + '].violatorName')}"
+                                  th:errors="*{violations[__${iter.index}__].violatorName}"></span>
+                        </div>
+                        <div class="field">
+                            <label>Badge No
+                                <input type="text" th:field="*{violations[__${iter.index}__].violatorBadgeNo}">
+                            </label>
+                            <span class="field-error alert error"
+                                  th:if="${#fields.hasErrors('violations[' + iter.index + '].violatorBadgeNo')}"
+                                  th:errors="*{violations[__${iter.index}__].violatorBadgeNo}"></span>
+                        </div>
+                        <div class="field">
+                            <label>Title
+                                <input type="text" th:field="*{violations[__${iter.index}__].violatorTitle}">
+                            </label>
+                            <span class="field-error alert error"
+                                  th:if="${#fields.hasErrors('violations[' + iter.index + '].violatorTitle')}"
+                                  th:errors="*{violations[__${iter.index}__].violatorTitle}"></span>
+                        </div>
+                        <div class="field">
+                            <label>Task Incharge
+                                <input type="text" th:field="*{violations[__${iter.index}__].taskIncharge}">
+                            </label>
+                            <span class="field-error alert error"
+                                  th:if="${#fields.hasErrors('violations[' + iter.index + '].taskIncharge')}"
+                                  th:errors="*{violations[__${iter.index}__].taskIncharge}"></span>
+                        </div>
+                    </div>
+
+                    <div class="images-area">
+                        <label>Images (max 3, JPEG or PNG, 10 MB each)
+                            <input type="file" multiple accept="image/jpeg,image/png"
+                                   th:name="${'violations[' + iter.index + '].photos'}">
+                        </label>
+                    </div>
+
+                    <button type="button" class="linklike remove-violation" th:if="${iter.index > 0}">
+                        Remove this observation
+                    </button>
+                </div>
+            </div>
+
+            <button type="button" class="button-link" id="add-violation">+ Add another observation</button>
+            <span class="field-error alert error" th:if="${#fields.hasErrors('violations')}"
+                  th:errors="*{violations}"></span>
+        </section>
+
+        <div class="actions right">
             <button class="primary" type="submit">Submit report</button>
         </div>
     </form>
+
+    <!-- Clone source for extra observations. Report-level fields are mirrors; the
+         first rendered row owns the actual bound inputs. -->
+    <template id="violation-template">
+        <div class="violation-row">
+            <h3>Observation <span class="violation-number">1</span></h3>
+            <div class="sor-grid">
+                <div class="field">
+                    <label>Risk Rating
+                        <select class="choice-with-other" data-other-field="risk" data-other-value="OTHER"
+                                name="violations[0].riskRating">
+                            <option value="">Select a risk rating</option>
+                            <option th:each="rating : ${riskRatings}" th:value="${rating}" th:text="${rating}"></option>
+                            <option th:value="${otherOption}" th:text="${otherOption + ' (describe below)'}"></option>
+                        </select>
+                    </label>
+                    <div class="other-field" data-other-field="risk">
+                        <label>Other risk rating
+                            <input type="text" name="violations[0].riskRatingOther" disabled>
+                        </label>
+                    </div>
+                </div>
+                <div class="field field-wide">
+                    <label>Brief Description
+                        <textarea class="large" name="violations[0].briefDescription"></textarea>
+                    </label>
+                </div>
+                <div class="field field-wide">
+                    <label>Action Recommended
+                        <textarea class="large" name="violations[0].actionRecommended"></textarea>
+                    </label>
+                </div>
+                <div class="field">
+                    <label>Type of Observation
+                        <select class="observation-mirror" data-observation-field="observationType" readonly tabindex="-1">
+                            <option value="">Select a type</option>
+                            <option th:each="type : ${observationTypes}" th:value="${type}"
+                                    th:text="${type.name() == 'ACCIDENT' ? 'Accident' : 'Inspection finding'}"></option>
+                        </select>
+                    </label>
+                </div>
+                <div class="field">
+                    <label>Company
+                        <input class="readonly" type="text" th:value="${observer?.company}" readonly>
+                    </label>
+                </div>
+                <div class="field">
+                    <label>Time of Observation
+                        <input class="observation-mirror" type="time" data-observation-field="observationTime" readonly tabindex="-1">
+                    </label>
+                </div>
+                <div class="field">
+                    <label>Observation Date
+                        <input class="observation-mirror" type="date" data-observation-field="observationDate" readonly tabindex="-1">
+                    </label>
+                </div>
+                <div class="field">
+                    <label>Location / Area
+                        <input class="observation-mirror" type="text" data-observation-field="location" readonly tabindex="-1">
+                    </label>
+                </div>
+                <div class="field">
+                    <label>Observation Hazard
+                        <select class="choice-with-other" data-other-field="hazard" data-other-value="OTHER"
+                                name="violations[0].observationHazard">
+                            <option value="">Select an observation hazard</option>
+                            <option th:each="hazard : ${observationHazards}" th:value="${hazard}" th:text="${hazard}"></option>
+                            <option th:value="${otherOption}" th:text="${otherOption + ' (describe below)'}"></option>
+                        </select>
+                    </label>
+                    <div class="other-field" data-other-field="hazard">
+                        <label>Other observation hazard
+                            <input type="text" name="violations[0].observationHazardOther" disabled>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <h4>Violator Details</h4>
+            <div class="sor-grid">
+                <div class="field">
+                    <label>Name <input type="text" name="violations[0].violatorName"></label>
+                </div>
+                <div class="field">
+                    <label>Badge No <input type="text" name="violations[0].violatorBadgeNo"></label>
+                </div>
+                <div class="field">
+                    <label>Title <input type="text" name="violations[0].violatorTitle"></label>
+                </div>
+                <div class="field">
+                    <label>Task Incharge <input type="text" name="violations[0].taskIncharge"></label>
+                </div>
+            </div>
+            <div class="images-area">
+                <label>Images (max 3, JPEG or PNG, 10 MB each)
+                    <input type="file" multiple accept="image/jpeg,image/png" name="violations[0].photos">
+                </label>
+            </div>
+            <button type="button" class="linklike remove-violation">Remove this observation</button>
+        </div>
+    </template>
 </main>
 
 </body>

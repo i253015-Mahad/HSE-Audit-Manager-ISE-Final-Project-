@@ -12,23 +12,24 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/** SOR form binding. Observation identity is report-level; violations repeat the visual block. */
 public class ReportForm {
 
     private Long projectId;
 
-    @NotNull(message = "Enter the incident date.")
+    @NotNull(message = "Enter the observation date.")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    private LocalDate incidentDate;
+    private LocalDate observationDate;
 
-    @NotNull(message = "Enter the incident time.")
+    @NotNull(message = "Enter the time of observation.")
     @DateTimeFormat(pattern = "HH:mm")
-    private LocalTime incidentTime;
+    private LocalTime observationTime;
 
-    @NotBlank(message = "Enter the incident location.")
+    @NotBlank(message = "Enter the location/area.")
     private String location;
 
-    @NotNull(message = "Select the incident type.")
-    private IncidentType incidentType;
+    @NotNull(message = "Select the type of observation.")
+    private IncidentType observationType;
 
     @Valid
     @Size(min = 1, message = "A report must contain at least one violation.")
@@ -44,20 +45,20 @@ public class ReportForm {
         this.projectId = projectId;
     }
 
-    public LocalDate getIncidentDate() {
-        return incidentDate;
+    public LocalDate getObservationDate() {
+        return observationDate;
     }
 
-    public void setIncidentDate(LocalDate incidentDate) {
-        this.incidentDate = incidentDate;
+    public void setObservationDate(LocalDate observationDate) {
+        this.observationDate = observationDate;
     }
 
-    public LocalTime getIncidentTime() {
-        return incidentTime;
+    public LocalTime getObservationTime() {
+        return observationTime;
     }
 
-    public void setIncidentTime(LocalTime incidentTime) {
-        this.incidentTime = incidentTime;
+    public void setObservationTime(LocalTime observationTime) {
+        this.observationTime = observationTime;
     }
 
     public String getLocation() {
@@ -68,12 +69,12 @@ public class ReportForm {
         this.location = location;
     }
 
-    public IncidentType getIncidentType() {
-        return incidentType;
+    public IncidentType getObservationType() {
+        return observationType;
     }
 
-    public void setIncidentType(IncidentType incidentType) {
-        this.incidentType = incidentType;
+    public void setObservationType(IncidentType observationType) {
+        this.observationType = observationType;
     }
 
     public List<ViolationForm> getViolations() {

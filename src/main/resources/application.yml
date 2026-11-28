@@ -27,24 +27,13 @@ spring:
 hse:
   photos:
     directory: ${HSE_PHOTO_DIR:./data/photos}
-  # Example lists shown in the dropdowns; the team can replace them with
-  # HSE_HAZARD_CATEGORIES / HSE_SEVERITY_LEVELS (comma-separated) without code changes.
+  # Example lists shown in the SOR dropdowns; the team can replace them with
+  # HSE_OBSERVATION_HAZARDS / HSE_RISK_RATINGS (comma-separated) without code changes.
   # The OTHER free-text option is always appended; its input appears only when selected.
   form:
     other-option: OTHER
-    hazard-categories:
-      - Working at height
-      - Slip/trip/fall
-      - Manual handling
-      - Electrical exposure
-      - Fire/explosion
-      - Chemical exposure
-      - Struck by moving object
-    severity-levels:
-      - Low
-      - Medium
-      - High
-      - Critical
+    observation-hazards: ${HSE_OBSERVATION_HAZARDS:Unsafe act,Unsafe condition,Near miss,Working at height,Electrical exposure,Fire/explosion,Chemical exposure}
+    risk-ratings: ${HSE_RISK_RATINGS:Low,Medium,High,Critical}
 
 server:
   port: 8080

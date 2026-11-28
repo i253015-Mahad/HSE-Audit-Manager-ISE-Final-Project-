@@ -42,17 +42,14 @@
     <nav class="topnav">
         <a class="brand" th:href="@{/}">HSE Safety Reporting</a>
         <div class="nav-right">
-            <a class="navlink" th:if="${currentUserRole == 'INSPECTOR'}" th:href="@{/inspector}">Inspector</a>
-            <a class="navlink" th:if="${currentUserRole == 'MANAGER'}" th:href="@{/manager}">Manager</a>
-            <a class="navlink" th:if="${currentUserRole == 'ADMIN'}" th:href="@{/admin}">Admin</a>
             <!-- Project Management (Slice 6) is Admin-only (PRD section 4); the link
                  is display-only — /projects/** is denied for other roles server-side. -->
             <a class="navlink" th:if="${currentUserRole == 'ADMIN'}" th:href="@{/projects}">Projects</a>
-            <!-- Report creation (Slice 3) is Inspector-only; the use case re-checks
-                 the role server-side (ASR-01). -->
-            <a class="navlink" th:if="${currentUserRole == 'INSPECTOR'}" th:href="@{/reports/new}">New report</a>
-            <span class="badge" th:if="${currentUserRole != null and currentUserRole != ''}"
-                  th:text="${currentUserRole}">ROLE</span>
+            <!-- The green role badge is the single role label and also returns the
+                 user to their role dashboard; no duplicate plain-text dashboard link. -->
+            <a class="badge role-badge" th:if="${currentUserRole == 'INSPECTOR'}" th:href="@{/inspector}">INSPECTOR</a>
+            <a class="badge role-badge" th:if="${currentUserRole == 'MANAGER'}" th:href="@{/manager}">MANAGER</a>
+            <a class="badge role-badge" th:if="${currentUserRole == 'ADMIN'}" th:href="@{/admin}">ADMIN</a>
             <span class="who" th:if="${currentUserRole != null and currentUserRole != ''}"
                   th:text="${currentUserEmail}">user@example.com</span>
             <form class="inline" th:if="${currentUserRole != null and currentUserRole != ''}"

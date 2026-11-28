@@ -1,24 +1,30 @@
 # Implementation Plan — Current
 
-**Version:** v06 (current; author: Eman Ishaq; supersedes the v05 merged-integration revision)
+**Version:** v07 (current; author: Eman Ishaq; supersedes the v06 report-form choices revision)
 **Author:** Eman Ishaq
 **Date:** 27 November 2026
-**Status:** Slices 1, 2, 3 and 6 are merged into one runnable application on branch `eman`; Slice 3 pages use the shared theme and layout fragments. The report form now ships example hazard/severity dropdown lists and reveals the OTHER free-text inputs only after OTHER is selected.
-**History:** Supersedes v05 (merge/integration and UI consistency). The pre-merge Eman revision is preserved as `plan-v04-Eman.md`; v05 remains in git history.
+**Status:** Slices 1, 2, 3 and 6 are merged into one runnable application on branch `eman`. The report form now implements the hand-drawn SOR layout: SOR Details, Observer Details, Observation Details, repeated observation/violator blocks, Images and Submit. Observer identity and the selected project's Manager are resolved server-side and snapshotted on submission.
+**History:** Supersedes v06 (hazard/severity dropdown choices). The pre-merge Eman revision is preserved as `plan-v04-Eman.md`; v05/v06 remain in git history.
 
-## Changes from v05 — report-form choices and evidence
+## Changes from v06 — SOR form layout and data model
 
-1. **Hazard category and severity level dropdowns** now include example team-style
-   values from `application.yml` (`Working at height`, `Slip/trip/fall`,
-   `Manual handling`, `Low`, `Medium`, `High`, etc.) while remaining overridable via
-   `HSE_HAZARD_CATEGORIES` / `HSE_SEVERITY_LEVELS`.
-2. **Conditional OTHER inputs:** the free-text boxes are hidden, disabled and cleared
-   until **OTHER** is chosen; selecting a listed value hides them again. The behavior
-   also applies to cloned violation rows.
-3. **Evidence:** `Events Log/Eman Ishaq workflow evidence log.md` records the clean
-   build, browser flow and database checks for this revision.
-4. **Verification:** `mvn clean test` passes 70/70, and the submitted-page flow was
-   rechecked with a listed hazard/severity pair (no OTHER text required).
+1. **SOR layout:** `templates/report/new.html` now follows the sketch: Add Report → SOR Details → Observer Details → Observation Details → Type of Observation / Company / Time / Location / Observation Hazard → Violator Details → Images → Submit. Observation date is required.
+2. **Report-level observation identity:** `observationDate`, `observationTime`, `location` and `observationType` are bound once on `ReportForm` and mirrored read-only into later observation blocks; they are not repeated per violation in the domain model.
+3. **Auto-filled header:** a new SOR-owned `observer_profile` table keyed by email supplies Name / Badge No / Title / Company for the signed-in Inspector. `ProjectEligibilityPort.Eligibility` now returns the selected project's `manager_email`, which is displayed in the form and snapshotted on `SafetyReport` and `ReportVersion`.
+4. **Replaced choices:** the old Hazard Category / Severity Level lists are replaced by configured `observation-hazards` / `risk-ratings` (`HSE_OBSERVATION_HAZARDS` / `HSE_RISK_RATINGS`); both still append OTHER with a conditional free-text input.
+5. **Violator details:** Name, Badge No, Title and Task Incharge are now required, user-editable fields on each repeated observation; Brief Description, Observation Hazard, Risk Rating, Action Recommended and photo evidence remain per violation.
+6. **Schema and seeds:** `schema.sql` / `schema-test.sql` add `observer_profile` and replace the report/violation/version columns accordingly; `data.sql` / `data-test.sql` seed demo observer profiles. `ddl-auto=validate` remains unchanged.
+7. **Tests:** added SOR validator, service-snapshot and end-to-end form/submission tests. `mvn clean test` passes 78/78.
+
+## Changes from v05 — report-form choices and evidence (superseded by v07)
+
+1. **Configurable dropdowns and conditional OTHER inputs:** v06 introduced the
+   configuration-driven choices and hidden/disabled OTHER inputs, including cloned
+   violation rows. v07 retains this behavior for Observation Hazard and Risk Rating.
+2. **Evidence:** `docs/Event Logs/Eman Ishaq workflow evidence log.md` records the
+   clean build, browser flow and database checks.
+3. **Verification:** the current `mvn clean test` run passes 78/78; the submitted-page
+   flow was rechecked with listed SOR values (no OTHER text required).
 
 ## Changes from v04 — integration of Eman's Slice 3
 
@@ -36,17 +42,18 @@
    replaces the old `closed` flag).
 4. **Theme/structure consistency:** report pages now use `fragments :: head` and
    `fragments :: topbar`; `report-form.css` layers on the shared `app.css` tokens;
-   an INSPECTOR-only "New report" navlink was added to the shared topbar.
+   an INSPECTOR-only "+ New report" button was added to the Inspector dashboard heading.
 5. **Team decisions carried forward:** photographs capped at 3 per violation, 10 MB
-   each, JPEG/PNG only; hazard/severity lists are configuration-driven and always
-   include **OTHER**; FR-44 snapshots on first submission; EC-12 double submission
+   each, JPEG/PNG only; Observation Hazard / Risk Rating lists are
+   configuration-driven and always include **OTHER**; FR-44 snapshots on first
+   submission; EC-12 double submission
    blocked with a pessimistic-locked one-time token.
 6. **Schema:** `schema.sql` now includes the Slice 3 report/photo/designation tables,
    so Hibernate stays on `ddl-auto=validate` (no runtime DDL generation). Slices 3
    reads Project Management's owned `projects` entity/repository instead of defining
    a second `Project` mapping.
-7. **Verification:** 70/70 tests pass (`mvn test`), and the browser flow was checked:
-   email login → Inspector dashboard → New report → photo submission → submitted
+7. **Verification:** the current suite passes 78/78 (`mvn clean test`), and the browser flow was checked:
+   email login → Inspector dashboard → + New report button → photo submission → submitted
    page → duplicate-warning replay. Admin dashboards and `/projects` still render
    with the same shared theme.
 8. **Remaining integration debt (not in this UI pass):** dashboard `reports` /
@@ -113,19 +120,23 @@ behavior is stubbed with `TODO(MANAL)`; report-dependent behavior with `TODO(EMA
 
 - Photograph evidence: **max 3 per violation, 10 MB per file, JPEG and PNG only**;
   content type and file signature are both validated server-side (ADR-06 unchanged).
-- Hazard category and severity level lists are **team-supplied** through
-  `hse.form.hazard-categories` / `hse.form.severity-levels`; `application.yml` ships
-  example values that can be replaced via `HSE_HAZARD_CATEGORIES` /
-  `HSE_SEVERITY_LEVELS` without code changes. The form always appends **OTHER** and
+- Observation Hazard and Risk Rating lists are **team-supplied** through
+  `hse.form.observation-hazards` / `hse.form.risk-ratings`; `application.yml` ships
+  example values that can be replaced via `HSE_OBSERVATION_HAZARDS` /
+  `HSE_RISK_RATINGS` without code changes. The form always appends **OTHER** and
   shows its free-text input only after OTHER is selected. No values are hard-coded
-  in Java classes.
+  in Java classes. The old Hazard Category / Severity Level lists are replaced, not
+  retained on the Add Report page.
+- The SOR header auto-fills observer identity from `observer_profile` (keyed by the
+  signed-in Inspector's email) and the Manager from the selected project's
+  `manager_email`. Both are snapshotted at submission for auditability.
 - First submission records an immutable version snapshot (FR-44 / AC-37), so Slice 4
   only needs to add resubmission behavior.
 - Double submission (EC-12) is prevented by a one-time form token with a pessimistic
   database lock; the second POST reuses the first report instead of creating another.
 - A-04 is implemented as one `manager_email` on the Inspector's user record.
 - A portable JDK 17 / Maven 3.9.9 toolchain is used for local verification;
-  `mvn clean test` passes 70/70. Slices 1/2/6 sources are now present in the merged
+  `mvn clean test` passes 78/78. Slices 1/2/6 sources are now present in the merged
   tree.
 
 **Slice 6 open issues:**
@@ -199,9 +210,10 @@ with the name in the message).
 
 - **Presentation:** `web/report/ReportController`, `ReportForm`, `ViolationForm`,
   `ReportFormValidator`, `templates/report/new.html`, `templates/report/submitted.html`,
-  `static/js/report-form.js`, `static/css/report-form.css`. The form has one incident
-  header plus repeatable violations; incident mixing is structurally impossible and is
-  still checked for crafted per-violation fields in `SafetyReportService`.
+  `static/js/report-form.js`, `static/css/report-form.css`. The SOR form has one report
+  header (observer, project, manager, observation date/time/location/type) plus repeatable
+  observation/violator blocks; report-level identity is structurally shared and is still
+  enforced in `SafetyReportService`.
 - **Application:** `application/report/ReportSubmissionUseCase` (single transaction),
   `SubmissionToken` (EC-12), `application/project/ProjectSelectionQuery`, ports
   `AuthorizationPort` and `ProjectEligibilityPort`.
@@ -211,8 +223,8 @@ with the name in the message).
 - **Infrastructure:** JPA repositories, MySQL configuration, `data.sql` (dev profile seed
   only), local photograph directory (`hse.photos.directory`).
 - **New tables (after merge):** shared `users` / `projects` from Slice 1/6 plus
-  `inspector_designation` (FR-04), `safety_report`, `safety_violation`,
-  `report_version`, `photograph_evidence`, `submission_token`.
+  `inspector_designation` (FR-04), `observer_profile`, `safety_report`,
+  `safety_violation`, `report_version`, `photograph_evidence`, `submission_token`.
 - **Verification:** JDK 17 + Maven 3.9 were installed and `mvn test` was run on
   27 Nov 2026: **14 tests passed, 0 failed** (compilation succeeded). Unit tests cover
   FR-02/05/06, FR-04 refusal cases, and photograph constraints.
@@ -229,8 +241,8 @@ with the name in the message).
 | Slice | Status |
 |---|---|
 | 1 — Foundation & Auth | **Delivered (Manal) and merged** — login, three role areas, deny-by-default security, demo seeds (her 32 tests) |
-| 2 — Dashboard Interface | **UI delivered (Mahad) and merged into Slice 1's dashboards** — Reports/Notifications cards render in `dashboard/admin|manager|inspector.html` with empty-state until Slices 3/5 wire the data; topbar now links Inspectors to `/reports/new` |
-| 3 — Report Creation & Photos | **Delivered (Eman) and merged** — 14 unit tests; end-to-end submission verified against MySQL (27 Nov 2026); pages restyled with the shared fragments/CSS |
+| 2 — Dashboard Interface | **UI delivered (Mahad) and merged into Slice 1's dashboards** — Reports/Notifications cards render in `dashboard/admin|manager|inspector.html` with empty-state until Slices 3/5 wire the data; Inspector dashboard now links Inspectors to `/reports/new` with a **+ New report** button |
+| 3 — Report Creation & Photos | **Delivered (Eman) and merged** — SOR layout implemented with observer/manager snapshots and configured hazard/risk lists; 78 tests pass; end-to-end submission verified against MySQL and H2 (27 Nov 2026); pages use the shared fragments/CSS |
 | 4 — Approval & Rejection | Not started (Eman) |
 | 5 — Visibility & Corrective Actions | Not started |
 | 6 — Project Management & Closure | **Delivered (Mahad) and merged** — now compilable/runnable on Slice 1's skeleton; report side-effects still via the `ProjectReportSummary` port stub until Eman's module |
@@ -251,7 +263,7 @@ reportsCard` and `fragments :: notificationsCard`:
 | Attribute | Supplied by | Meaning |
 |---|---|---|
 | `currentUserEmail` / `currentUserRole` | `CurrentUserModelAdvice`, every request | Acting identity; role keys the card titles and nav visibility. |
-| `reports` | Application layer (Slices 3–5, **not yet supplied**) | **Already filtered** server-side to the acting role — presentation must not re-implement filtering (AGENTS.md §8): FR-14 Inspector → own reports only (pending, rejected+reason, Open, Closed); FR-15 Manager → reports of assigned projects only; FR-16 Admin → approved non-deleted Open + Closed across ALL projects, never Pending/Rejected (FR-12, AC-13). Fields used: `id, reference, project, incidentDate, location, status, rejectionReason` (nullable). |
+| `reports` | Application layer (Slices 3–5, **not yet supplied**) | **Already filtered** server-side to the acting role — presentation must not re-implement filtering (AGENTS.md §8): FR-14 Inspector → own reports only (pending, rejected+reason, Open, Closed); FR-15 Manager → reports of assigned projects only; FR-16 Admin → approved non-deleted Open + Closed across ALL projects, never Pending/Rejected (FR-12, AC-13). Fields used: `id, reference, project, observationDate, location, status, rejectionReason` (nullable). |
 | `notifications` | Slice 4 (**not yet supplied**) | Rejection notifications for the OWNING Inspector only (FR-42, AC-12/AC-41). Fields used: `id, reportReference, reason, createdAt`. |
 
 While the report module is absent both attributes are simply not supplied — the cards

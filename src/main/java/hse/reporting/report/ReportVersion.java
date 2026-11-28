@@ -37,18 +37,33 @@ public class ReportVersion {
     @Column(name = "inspector_email", nullable = false)
     private String inspectorEmail;
 
-    @Column(name = "incident_date", nullable = false)
-    private LocalDate incidentDate;
+    @Column(name = "observer_name", nullable = false)
+    private String observerName;
 
-    @Column(name = "incident_time", nullable = false)
-    private LocalTime incidentTime;
+    @Column(name = "observer_badge_no", nullable = false)
+    private String observerBadgeNo;
+
+    @Column(name = "observer_title", nullable = false)
+    private String observerTitle;
+
+    @Column(name = "observer_company", nullable = false)
+    private String observerCompany;
+
+    @Column(name = "manager_email", nullable = false)
+    private String managerEmail;
+
+    @Column(name = "observation_date", nullable = false)
+    private LocalDate observationDate;
+
+    @Column(name = "observation_time", nullable = false)
+    private LocalTime observationTime;
 
     @Column(nullable = false)
     private String location;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "incident_type", nullable = false)
-    private IncidentType incidentType;
+    @Column(name = "observation_type", nullable = false)
+    private IncidentType observationType;
 
     @Column(name = "violations_json", nullable = false, columnDefinition = "TEXT")
     private String violationsJson;
@@ -57,17 +72,24 @@ public class ReportVersion {
     }
 
     public ReportVersion(Long reportId, int versionNumber, LocalDateTime submittedAt, Long projectId,
-                         String inspectorEmail, LocalDate incidentDate, LocalTime incidentTime,
-                         String location, IncidentType incidentType, String violationsJson) {
+                         String inspectorEmail, String observerName, String observerBadgeNo, String observerTitle,
+                         String observerCompany, String managerEmail, LocalDate observationDate,
+                         LocalTime observationTime, String location, IncidentType observationType,
+                         String violationsJson) {
         this.reportId = reportId;
         this.versionNumber = versionNumber;
         this.submittedAt = submittedAt;
         this.projectId = projectId;
         this.inspectorEmail = inspectorEmail;
-        this.incidentDate = incidentDate;
-        this.incidentTime = incidentTime;
+        this.observerName = observerName;
+        this.observerBadgeNo = observerBadgeNo;
+        this.observerTitle = observerTitle;
+        this.observerCompany = observerCompany;
+        this.managerEmail = managerEmail;
+        this.observationDate = observationDate;
+        this.observationTime = observationTime;
         this.location = location;
-        this.incidentType = incidentType;
+        this.observationType = observationType;
         this.violationsJson = violationsJson;
     }
 
@@ -77,5 +99,25 @@ public class ReportVersion {
 
     public int getVersionNumber() {
         return versionNumber;
+    }
+
+    public String getObserverName() {
+        return observerName;
+    }
+
+    public String getManagerEmail() {
+        return managerEmail;
+    }
+
+    public LocalDate getObservationDate() {
+        return observationDate;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public String getViolationsJson() {
+        return violationsJson;
     }
 }

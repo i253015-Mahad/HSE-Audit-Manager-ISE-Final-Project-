@@ -25,10 +25,10 @@ public class ProjectSelectionQuery {
             return List.of();
         }
         return projects.findByManagerEmailAndState(managerEmail, Project.State.OPEN).stream()
-            .map(project -> new ProjectOption(project.getId(), project.getName()))
+            .map(project -> new ProjectOption(project.getId(), project.getName(), project.getManagerEmail()))
             .toList();
     }
 
-    public record ProjectOption(Long id, String name) {
+    public record ProjectOption(Long id, String name, String managerEmail) {
     }
 }

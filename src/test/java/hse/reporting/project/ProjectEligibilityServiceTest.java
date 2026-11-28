@@ -41,7 +41,9 @@ class ProjectEligibilityServiceTest {
         when(designations.findById("inspector@hse.test"))
             .thenReturn(Optional.of(new InspectorDesignation("inspector@hse.test", "manager@hse.test")));
 
-        assertTrue(service.check("inspector@hse.test", 1L).allowed());
+        ProjectEligibilityPort.Eligibility result = service.check("inspector@hse.test", 1L);
+        assertTrue(result.allowed());
+        assertEquals("manager@hse.test", result.managerEmail());
     }
 
     @Test
