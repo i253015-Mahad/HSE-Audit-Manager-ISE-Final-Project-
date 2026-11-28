@@ -117,6 +117,18 @@ public class ReportVersion {
         return location;
     }
 
+    public LocalDateTime getSubmittedAt() {
+        return submittedAt;
+    }
+
+    public LocalTime getObservationTime() {
+        return observationTime;
+    }
+
+    public IncidentType getObservationType() {
+        return observationType;
+    }
+
     public String getViolationsJson() {
         return violationsJson;
     }

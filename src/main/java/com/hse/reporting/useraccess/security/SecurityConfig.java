@@ -51,6 +51,12 @@ public class SecurityConfig {
                         // The handlers re-check the actor as well (ASR-01).
                         .requestMatchers("/projects/**").hasRole(Role.ADMIN.name())
                         // Report creation is Inspector-only; the use case repeats the check (ASR-01).
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/reports/new").hasRole(Role.INSPECTOR.name())
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/reports").hasRole(Role.INSPECTOR.name())
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/reports/submitted").hasRole(Role.INSPECTOR.name())
+                        // Report viewing is available to Inspector, Manager and Admin (FR-14/15/16).
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/reports", "/reports/*", "/reports/*/photos/*").hasAnyRole(Role.INSPECTOR.name(), Role.MANAGER.name(), Role.ADMIN.name())
+                        // Fallback for any other /reports/** paths (Inspector-only).
                         .requestMatchers("/reports/**").hasRole(Role.INSPECTOR.name())
                         // deny-by-default: everything else needs a signed-in user
                         .anyRequest().authenticated())

@@ -1,5 +1,6 @@
 package com.hse.reporting.projectmanagement.access;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -15,8 +16,14 @@ import java.util.List;
  */
 public interface ProjectAccessQueries {
 
-    /** Lightweight, non-authoritative projection of a project for display and scope checks. */
-    record ProjectSummary(long id, String name) {
+    /**
+     * Lightweight, non-authoritative projection of a project for display and scope checks.
+     *
+     * <p>{@code open} carries the project state (FR-22 / FR-36): report changes
+     * such as approval, rejection and resubmission are refused once a project
+     * is closed, while viewing stays available under EC-29.
+     */
+    record ProjectSummary(long id, String name, boolean open) {
     }
 
     /**
@@ -30,4 +37,10 @@ public interface ProjectAccessQueries {
 
     /** All projects — used for HSE Engineer/Admin cross-project oversight (ASR-03). */
     List<ProjectSummary> allProjects();
+
+    /**
+     * The named projects only. An empty collection returns an empty list — never
+     * every project — so a caller that has no scope can never widen itself by accident.
+     */
+    List<ProjectSummary> projectsByIds(Collection<Long> projectIds);
 }

@@ -92,6 +92,9 @@ CREATE TABLE IF NOT EXISTS safety_report (
     observation_type  VARCHAR(255) NOT NULL,
     submission_status VARCHAR(255) NOT NULL,
     progress_status   VARCHAR(255) NULL,
+    -- FR-11: stored with the report when a Manager rejects it. Displayed only
+    -- while submission_status = REJECTED; retained after resubmission (FR-43).
+    rejection_reason  VARCHAR(2000) NULL,
     deleted           BIT(1)       NOT NULL DEFAULT b'0',
     submitted_at      DATETIME(6)  NOT NULL,
     PRIMARY KEY (id),
@@ -151,6 +154,26 @@ CREATE TABLE IF NOT EXISTS photograph_evidence (
     PRIMARY KEY (id),
     UNIQUE KEY uq_photo_file (stored_file_name),
     KEY idx_photo_violation (violation_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+-- ---------------------------------------------------------------------------
+-- Slice 4: rejection notification (FR-42, FR-11, AC-12).
+--
+-- Created only when a Manager rejects a pending report, and delivered to that
+-- report's Inspector alone — no other user receives it (FR-42). report_id is a
+-- plain reference to safety_report; the displayed reference (RPT-%04d) is
+-- derived in the view model, never stored here.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS notification (
+    id             BIGINT        NOT NULL AUTO_INCREMENT,
+    report_id      BIGINT        NOT NULL,
+    inspector_email VARCHAR(255) NOT NULL,
+    reason         VARCHAR(2000) NOT NULL,
+    created_at     DATETIME(6)   NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_notification_inspector (inspector_email),
+    KEY idx_notification_report (report_id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
 

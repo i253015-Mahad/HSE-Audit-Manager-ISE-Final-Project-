@@ -57,6 +57,16 @@ public class LocalPhotoStore implements PhotoStore {
         }
     }
 
+    @Override
+    public byte[] read(String storedFileName) {
+        Path target = resolveInsideStorage(storedFileName);
+        try {
+            return Files.readAllBytes(target);
+        } catch (IOException exception) {
+            throw new IllegalStateException("Could not read photograph evidence", exception);
+        }
+    }
+
     private Path resolveInsideStorage(String fileName) {
         Path target = directory.resolve(fileName).normalize();
         if (!directory.equals(target.getParent())) {

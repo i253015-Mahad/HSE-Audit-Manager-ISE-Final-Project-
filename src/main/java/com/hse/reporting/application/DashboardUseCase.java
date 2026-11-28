@@ -1,5 +1,6 @@
 package com.hse.reporting.application;
 
+import com.hse.reporting.application.report.ReportViewingUseCase;
 import com.hse.reporting.projectmanagement.access.ProjectAccessQueries;
 import com.hse.reporting.projectmanagement.access.ProjectAccessQueries.ProjectSummary;
 import com.hse.reporting.useraccess.access.Actor;
@@ -23,19 +24,25 @@ public class DashboardUseCase {
     private final ActorContext actorContext;
     private final AuthorizationService authorization;
     private final ProjectAccessQueries projectAccess;
+    private final ReportViewingUseCase reports;
 
     public DashboardUseCase(ActorContext actorContext,
                            AuthorizationService authorization,
-                           ProjectAccessQueries projectAccess) {
+                           ProjectAccessQueries projectAccess,
+                           ReportViewingUseCase reports) {
         this.actorContext = actorContext;
         this.authorization = authorization;
         this.projectAccess = projectAccess;
+        this.reports = reports;
     }
 
-    /** Inspector landing page: no project scope, no data fetched (report views arrive with Slice 4). */
-    public void inspectorDashboard() {
+    /**
+     * Inspector landing page: sees their own reports (pending, rejected, Open, Closed).
+     */
+    public InspectorDashboard inspectorDashboard() {
         Actor actor = actorContext.currentActor();
         authorization.requireRole(actor, Role.INSPECTOR);
+        return new InspectorDashboard(reports.listForInspector());
     }
 
     /**
@@ -59,5 +66,8 @@ public class DashboardUseCase {
     }
 
     public record AdminDashboard(List<ProjectSummary> projects) {
+    }
+
+    public record InspectorDashboard(List<com.hse.reporting.report.SafetyReport> reports) {
     }
 }

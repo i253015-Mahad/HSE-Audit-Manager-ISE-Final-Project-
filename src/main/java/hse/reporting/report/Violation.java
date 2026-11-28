@@ -122,4 +122,36 @@ public class Violation {
     public void assignTo(SafetyReport report) {
         this.report = report;
     }
+
+    /**
+     * FR-03 block built from a validated draft, trimmed exactly the way a first
+     * submission trims it so both paths produce identical rows.
+     */
+    static Violation from(ViolationDraft draft) {
+        return new Violation(
+            draft.briefDescription().trim(),
+            draft.observationHazard(),
+            draft.observationHazardOther(),
+            draft.riskRating(),
+            draft.riskRatingOther(),
+            draft.actionRecommended(),
+            draft.violatorName().trim(),
+            draft.violatorBadgeNo().trim(),
+            draft.violatorTitle().trim(),
+            draft.taskIncharge().trim());
+    }
+
+    /** FR-43: edits in place so the id — and the photographs hanging off it — survive. */
+    void apply(ViolationDraft draft) {
+        this.briefDescription = draft.briefDescription().trim();
+        this.observationHazard = draft.observationHazard();
+        this.observationHazardOther = draft.observationHazardOther();
+        this.riskRating = draft.riskRating();
+        this.riskRatingOther = draft.riskRatingOther();
+        this.actionRecommended = draft.actionRecommended();
+        this.violatorName = draft.violatorName().trim();
+        this.violatorBadgeNo = draft.violatorBadgeNo().trim();
+        this.violatorTitle = draft.violatorTitle().trim();
+        this.taskIncharge = draft.taskIncharge().trim();
+    }
 }
